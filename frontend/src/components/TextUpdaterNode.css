@@ -1,0 +1,44 @@
+.text-updater-node {
+    background: white;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    padding: 10px;
+    min-width: 200px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.text-updater-node label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 5px;
+    font-size: 12px;
+}
+
+.text-updater-node input {
+    width: 100%;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.text-updater-node button {
+    margin-top: 10px;
+    padding: 5px 10px;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.text-updater-node button:hover {
+    background: #0056b3;
+}
+
+.text-updater-node p {
+    margin-top: 5px;
+    font-size: 11px;
+    color: #666;
+}

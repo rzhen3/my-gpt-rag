@@ -4,7 +4,7 @@ import './App.css';
 
 function App() {
   return (
-      <div className = "App" style={{ width: '100vw', height: '100vh'}}>
+      <div className = "App">
         <h2>
           &lt; A better name than 'my-gpt-rag' &gt;
         </h2>

@@ -10,23 +10,31 @@ import { ReactFlow,
     addEdge, 
     type Node, type Edge, type OnNodesChange, type OnEdgesChange, type OnConnect} from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import TextUpdaterNode from './TextUpdaterNode';
 
 const initialNodes: Node[] = [
     {
-        id: '1',
-        type: 'input',
+        id: 'n1',
         data: { label: 'Start Node'},
         position: { x: 250, y: 250},
     },
     {
-        id: '2',
+        id: 'n2',
         data: { label: 'Output Node' },
         position: { x: 250, y: 200},
+    },
+    {
+        id: 'n3',
+        type: 'textUpdater',
+        position: { x: 0, y: 0},
+        data: { label: 'some node', value: 123},
     }
 ];
 
+const nodeTypes = { textUpdater: TextUpdaterNode }
+
 const initialEdges: Edge[] = [
-    { id: 'e1-2', source: '1', target: '2'}
+    { id: 'n1-n2', source: 'n1', target: 'n2'}
 ];
 
 function SimpleFlow() {
@@ -53,6 +61,7 @@ function SimpleFlow() {
                 <ReactFlow
                     nodes = {nodes}
                     edges = {edges}
+                    nodeTypes = {nodeTypes}
                     onNodesChange = {onNodesChange}
                     onEdgesChange = {onEdgesChange}
                     onConnect = {onConnect}
