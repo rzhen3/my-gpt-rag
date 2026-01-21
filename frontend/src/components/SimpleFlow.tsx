@@ -8,7 +8,7 @@ import { ReactFlow,
     applyNodeChanges, 
     applyEdgeChanges, 
     addEdge, 
-    type Node, type Edge, type OnNodesChange, type OnEdgesChange, type OnConnect} from '@xyflow/react';
+    type Node, type Edge, type OnNodesChange, type OnEdgesChange, type OnConnect, type NodeTypes} from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import TextUpdaterNode from './TextUpdaterNode';
 
@@ -31,7 +31,7 @@ const initialNodes: Node[] = [
     }
 ];
 
-const nodeTypes = { textUpdater: TextUpdaterNode }
+const nodeTypes: NodeTypes = { textUpdater: TextUpdaterNode }
 
 const initialEdges: Edge[] = [
     { id: 'n1-n2', source: 'n1', target: 'n2'}
@@ -51,7 +51,41 @@ function SimpleFlow() {
     );
 
     const onConnect: OnConnect = useCallback(
-        (params) => setEdges((edgesSnapshot) => addEdge(params, edgesSnapshot)), []
+        (connection) => {
+            // add edge
+            setEdges((eds) => addEdge(connection, eds));
+            
+            // increment handle counts
+            setNodes((nds) =>
+                nds.map((node) => {
+
+                    // increment target node handles
+                    if (node.id === connection.target && node.type === 'textUpdater'){
+                        return {
+                            ...node,
+                            data: {
+                                ...node.data,
+                                handleCount: (node.data.handleCount || 1) + 1,
+                            },
+                        };
+                    }
+
+                    // increment source node handles too
+                    if (node.id === connection.source && node.type === 'textUpdater'){
+                        return {
+                            ...node,
+                            data: {
+                                ...node.data,
+                                sourceHandleCount: (node.data.sourceHandleCount || 1) + 1,
+                            }
+                        };
+                    }
+
+                    return node;
+                })
+            );
+            
+        }, []
     );
 
 
