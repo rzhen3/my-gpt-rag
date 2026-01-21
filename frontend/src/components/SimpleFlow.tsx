@@ -10,28 +10,42 @@ import { ReactFlow,
     addEdge, 
     type Node, type Edge, type OnNodesChange, type OnEdgesChange, type OnConnect, type NodeTypes} from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import TextUpdaterNode from './TextUpdaterNode';
+import PromptNode from './PromptNode';
 
 const initialNodes: Node[] = [
     {
         id: 'n1',
         data: { label: 'Start Node'},
         position: { x: 250, y: 250},
+        connectable: true,
+        draggable: true,
     },
     {
         id: 'n2',
         data: { label: 'Output Node' },
         position: { x: 250, y: 200},
+        connectable: true,
+        draggable: true,
     },
     {
         id: 'n3',
-        type: 'textUpdater',
+        type: 'prompt',
         position: { x: 0, y: 0},
         data: { label: 'some node', value: 123},
+        connectable: true,
+        draggable: true,
+    },
+    {
+        id: 'n4',
+        type: 'prompt',
+        position: { x: 67, y: 67},
+        data: { label: 'some other node', value: 123},
+        connectable: true,
+        draggable: true,
     }
 ];
 
-const nodeTypes: NodeTypes = { textUpdater: TextUpdaterNode }
+const nodeTypes: NodeTypes = { prompt: PromptNode }
 
 const initialEdges: Edge[] = [
     { id: 'n1-n2', source: 'n1', target: 'n2'}
@@ -99,6 +113,8 @@ function SimpleFlow() {
                     onNodesChange = {onNodesChange}
                     onEdgesChange = {onEdgesChange}
                     onConnect = {onConnect}
+                    connectionMode = "loose"
+                    connectOnClick = {false}
                     fitView
                 >
                     <Background variant={BackgroundVariant.Dots} gap={12} size={1}/>

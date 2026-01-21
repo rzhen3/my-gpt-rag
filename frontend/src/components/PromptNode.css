@@ -1,0 +1,80 @@
+.prompt-node {
+    background: white;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    padding: 10px;
+    min-width: 200px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    position: relative;
+}
+
+/* hide handles by default */
+.prompt-node .react-flow__handle {
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+/* show handles on hover */
+.prmopt-node:hover .react-flow__handle {
+    opacity: 1;
+}
+
+.prompt-node label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 5px;
+    font-size: 12px;
+}
+
+.prompt-node input {
+    width: 100%;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.prompt-node button {
+    margin-top: 10px;
+    padding: 5px 10px;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.prompt-node button:hover {
+    background: #0056b3;
+}
+
+.prompt-node p {
+    margin-top: 5px;
+    font-size: 11px;
+    color: #666;
+}
+
+/* Display area for submitted text */
+.text-display-area {
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px solid #eee;
+}
+
+.text-content {
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #333;
+    word-wrap: break-word;
+    white-space: pre-wrap; /* Preserves line breaks and spaces */
+}
+
+/* Hide handles by default */
+.prompt-node .react-flow__handle {
+    opacity: 0;
+    transition: opacity 0.2s;
+}
