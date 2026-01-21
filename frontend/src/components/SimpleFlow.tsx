@@ -1,5 +1,14 @@
-import React from 'react';
-import { ReactFlow, ReactFlowProvider, type Node, type Edge, Background, Controls} from '@xyflow/react';
+import { useState, useCallback } from 'react';
+import { ReactFlow, 
+    // ReactFlowProvider, 
+    Background, 
+    BackgroundVariant,
+    Controls, 
+    MiniMap,
+    applyNodeChanges, 
+    applyEdgeChanges, 
+    addEdge, 
+    type Node, type Edge, type OnNodesChange, type OnEdgesChange, type OnConnect} from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
 const initialNodes: Node[] = [
@@ -21,25 +30,43 @@ const initialEdges: Edge[] = [
 ];
 
 function SimpleFlow() {
+
+    const [nodes, setNodes] = useState(initialNodes);
+    const [edges, setEdges] = useState(initialEdges);
+
+    const onNodesChange: OnNodesChange = useCallback(
+        (changes) => setNodes((nodesSnapshot) => applyNodeChanges(changes, nodesSnapshot)), []
+    );
+
+    const onEdgesChange: OnEdgesChange = useCallback(
+        (changes) => setEdges((edgesSnapshot) => applyEdgeChanges(changes, edgesSnapshot)), []
+    );
+
+    const onConnect: OnConnect = useCallback(
+        (params) => setEdges((edgesSnapshot) => addEdge(params, edgesSnapshot)), []
+    );
+
+
     return (
         <div style = {{width: '100vw', height: '100vh'}}>
-            <ReactFlowProvider>
+            {/* <ReactFlowProvider> */}
                 <ReactFlow
-                    nodes = {initialNodes}
-                    edges = {initialEdges}
+                    nodes = {nodes}
+                    edges = {edges}
+                    onNodesChange = {onNodesChange}
+                    onEdgesChange = {onEdgesChange}
+                    onConnect = {onConnect}
+                    fitView
                 >
-                    <Background/>
+                    <Background variant={BackgroundVariant.Dots} gap={12} size={1}/>
+                    <MiniMap />
                     <Controls/>
 
                 </ReactFlow>
-
-                
-            </ReactFlowProvider>
-
+            {/* </ReactFlowProvider> */}
 
         </div>
     );
 };
 
 export default SimpleFlow;
-
