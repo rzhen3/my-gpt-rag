@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
-import { ReactFlow, 
-    // ReactFlowProvider, 
+import { ReactFlow, ConnectionMode,
+    MarkerType,
     Background, 
     BackgroundVariant,
     Controls, 
@@ -8,27 +8,15 @@ import { ReactFlow,
     applyNodeChanges, 
     applyEdgeChanges, 
     addEdge, 
-    type Node, type Edge, type OnNodesChange, type OnEdgesChange, type OnConnect, type NodeTypes} from '@xyflow/react';
+    type Node, type Edge, type OnNodesChange, type OnEdgesChange, type OnConnect, type NodeTypes,
+    type Connection,
+    } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import PromptNode from './PromptNode';
 
 const initialNodes: Node[] = [
     {
         id: 'n1',
-        data: { label: 'Start Node'},
-        position: { x: 250, y: 250},
-        connectable: true,
-        draggable: true,
-    },
-    {
-        id: 'n2',
-        data: { label: 'Output Node' },
-        position: { x: 250, y: 200},
-        connectable: true,
-        draggable: true,
-    },
-    {
-        id: 'n3',
         type: 'prompt',
         position: { x: 0, y: 0},
         data: { label: 'some node', value: 123},
@@ -36,7 +24,7 @@ const initialNodes: Node[] = [
         draggable: true,
     },
     {
-        id: 'n4',
+        id: 'n2',
         type: 'prompt',
         position: { x: 67, y: 67},
         data: { label: 'some other node', value: 123},
@@ -47,14 +35,14 @@ const initialNodes: Node[] = [
 
 const nodeTypes: NodeTypes = { prompt: PromptNode }
 
-const initialEdges: Edge[] = [
-    { id: 'n1-n2', source: 'n1', target: 'n2'}
-];
+const initialEdges: Edge[] = [];
 
 function SimpleFlow() {
 
     const [nodes, setNodes] = useState(initialNodes);
     const [edges, setEdges] = useState(initialEdges);
+    const [nodeIdCounter, setNodeIdCounter] = useState(4);
+
 
     const onNodesChange: OnNodesChange = useCallback(
         (changes) => setNodes((nodesSnapshot) => applyNodeChanges(changes, nodesSnapshot)), []
@@ -64,47 +52,99 @@ function SimpleFlow() {
         (changes) => setEdges((edgesSnapshot) => applyEdgeChanges(changes, edgesSnapshot)), []
     );
 
+    const addPromptNode = useCallback(() => {
+        const newNode: Node = {
+            id: `n${nodeIdCounter}`,
+            type: 'prompt',
+            position: {
+
+                x: Math.random() * 500,
+                y: Math.random() * 500
+            },
+            data: {
+                label: `Node ${nodeIdCounter}`,
+            },
+            connectable: true,
+            draggable: true
+        };
+
+        setNodes((nds) => [...nds, newNode]);
+        setNodeIdCounter((count) => count + 1);
+    }, [nodeIdCounter]);
+    
+    const isValidConnection = useCallback((connection: Connection | Edge) => {
+        // Prevent connecting to self
+        if (connection.source === connection.target) {
+            return false;
+        }
+
+        const isDuplicate = edges.some(
+            (edge) => 
+                edge.source === connection.source && edge.target === connection.target
+        );
+
+        return !isDuplicate;
+    }, [edges]);
+
     const onConnect: OnConnect = useCallback(
         (connection) => {
+
+            const newEdge: Edge = {
+                ...connection,
+                id: `e${connection.source}-connection.target`,
+                type: 'default',
+                markerEnd: {
+                    type: MarkerType.ArrowClosed,
+                    width: 10,
+                    height: 10,
+                    color: '#000'
+                },
+
+                data: {
+                    label: 'Flow',
+                    timestamp: new Date().toISOString(),
+                },
+
+                style: {
+                    strokeWidth: 2,
+                    stroke: '#555'
+                }
+            }
+
             // add edge
-            setEdges((eds) => addEdge(connection, eds));
-            
-            // increment handle counts
-            setNodes((nds) =>
-                nds.map((node) => {
-
-                    // increment target node handles
-                    if (node.id === connection.target && node.type === 'textUpdater'){
-                        return {
-                            ...node,
-                            data: {
-                                ...node.data,
-                                handleCount: (node.data.handleCount || 1) + 1,
-                            },
-                        };
-                    }
-
-                    // increment source node handles too
-                    if (node.id === connection.source && node.type === 'textUpdater'){
-                        return {
-                            ...node,
-                            data: {
-                                ...node.data,
-                                sourceHandleCount: (node.data.sourceHandleCount || 1) + 1,
-                            }
-                        };
-                    }
-
-                    return node;
-                })
-            );
-            
+            setEdges((eds) => addEdge(newEdge, eds));
+                        
         }, []
     );
 
 
     return (
         <div style = {{width: '100vw', height: '100vh'}}>
+            {/* Toolbar with Add Node button */}
+            <div style={{
+                position: 'absolute',
+                top: 10,
+                left: 10,
+                zIndex: 10,
+                display: 'flex',
+                gap: '10px',
+            }}>
+                <button
+                    onClick={addPromptNode}
+                    style={{
+                        padding: '10px 20px',
+                        backgroundColor: '#007bff',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        fontWeight: 'bold',
+                    }}
+                >
+                    + Add Prompt Node
+                </button>
+            </div>
             {/* <ReactFlowProvider> */}
                 <ReactFlow
                     nodes = {nodes}
@@ -113,7 +153,8 @@ function SimpleFlow() {
                     onNodesChange = {onNodesChange}
                     onEdgesChange = {onEdgesChange}
                     onConnect = {onConnect}
-                    connectionMode = "loose"
+                    connectionMode = {ConnectionMode.Loose}
+                    isValidConnection = {isValidConnection}
                     connectOnClick = {false}
                     fitView
                 >

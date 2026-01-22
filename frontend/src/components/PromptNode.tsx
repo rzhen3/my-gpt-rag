@@ -47,8 +47,8 @@ function PromptNode({ id, data } : NodeProps) {
                     value = {inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
                 />
-                <Handle type='source' position={Position.Top} id = 'h1' />
-                <Handle type='target' position = {Position.Bottom} id = 'h2' />
+                <Handle type='source' position={Position.Top} id = 'output' style = {{opacity: 0 }}/>
+                <Handle type='target' position = {Position.Bottom} id = 'input' style = {{ opacity: 0}} />
 
                 {/* {
                     Array.from({ length: handleCount}).map((_, index) => (
