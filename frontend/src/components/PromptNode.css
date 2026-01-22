@@ -7,6 +7,11 @@
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     position: relative;
 }
+/* selection highlight */
+.prompt-node.selected {
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.3);
+}
 
 /* hide handles by default */
 .prompt-node .react-flow__handle {
@@ -31,7 +36,7 @@
     padding: 5px;
     border: 1px solid #ccc;
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 8px;
 }
 
 .prompt-node button {
@@ -60,13 +65,10 @@
     margin-top: 15px;
     padding-top: 10px;
     border-top: 1px solid #eee;
-}
-
-.text-content {
     padding: 10px;
     background-color: #f8f9fa;
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 8px;
     line-height: 1.5;
     color: #333;
     word-wrap: break-word;
@@ -77,4 +79,21 @@
 .prompt-node .react-flow__handle {
     opacity: 0;
     transition: opacity 0.2s;
+}
+
+.prompt-preview {
+    width: 100%;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 12px;
+    margin-bottom: 10px;
+    min-height: 24px;
+    cursor: text;
+    color: #666;
+}
+
+.prompt-preview:hover {
+    border-color: #999;
+    background-color: #f9f9f9;
 }

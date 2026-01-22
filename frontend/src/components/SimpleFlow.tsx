@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { ReactFlow, ConnectionMode,
     MarkerType,
     Background, 
@@ -8,6 +8,7 @@ import { ReactFlow, ConnectionMode,
     applyNodeChanges, 
     applyEdgeChanges, 
     addEdge, 
+    // useReactFlow,
     type Node, type Edge, type OnNodesChange, type OnEdgesChange, type OnConnect, type NodeTypes,
     type Connection,
     } from '@xyflow/react';
@@ -22,6 +23,8 @@ const initialNodes: Node[] = [
         data: { label: 'some node', value: 123},
         connectable: true,
         draggable: true,
+        selectable: true,
+        focusable: true
     },
     {
         id: 'n2',
@@ -30,6 +33,8 @@ const initialNodes: Node[] = [
         data: { label: 'some other node', value: 123},
         connectable: true,
         draggable: true,
+        selectable: true,
+        focusable: true
     }
 ];
 
@@ -43,6 +48,8 @@ function SimpleFlow() {
     const [edges, setEdges] = useState(initialEdges);
     const [nodeIdCounter, setNodeIdCounter] = useState(4);
 
+    // const { screenToFlowPosition, getViewport } = useReactFlow();
+
 
     const onNodesChange: OnNodesChange = useCallback(
         (changes) => setNodes((nodesSnapshot) => applyNodeChanges(changes, nodesSnapshot)), []
@@ -52,6 +59,9 @@ function SimpleFlow() {
         (changes) => setEdges((edgesSnapshot) => applyEdgeChanges(changes, edgesSnapshot)), []
     );
 
+    /*
+        create new prompt
+    */
     const addPromptNode = useCallback(() => {
         const newNode: Node = {
             id: `n${nodeIdCounter}`,
@@ -65,13 +75,72 @@ function SimpleFlow() {
                 label: `Node ${nodeIdCounter}`,
             },
             connectable: true,
-            draggable: true
+            draggable: true,
+            selectable: true,
+            deletable: true,
+            focusable: true
         };
 
         setNodes((nds) => [...nds, newNode]);
         setNodeIdCounter((count) => count + 1);
     }, [nodeIdCounter]);
+
+    /*
+        delete selected nodes
+    */
+   const deleteSelectedNodes = useCallback(() => {
+        const selectedNodes = nodes.filter((node) => node.selected);
+
+        const selectedNodeIds = selectedNodes.map((node) => node.id);
+
+        if (selectedNodeIds.length > 0){
+            setNodes((nds) => nds.filter((node) => !node.selected));
+            setEdges((eds) => eds.filter(
+                (edge) => !selectedNodeIds.includes(edge.source) && !selectedNodeIds.includes(edge.target)
+            ));
+        }
+
+   }, [nodes]);
+
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            const target = event.target as HTMLElement;
+
+            const isInputField = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+
+            // ctr + n: create new node
+            if((event.shiftKey) && event.key === 'N'){
+                event.preventDefault();
+                event.stopPropagation();
+                addPromptNode();
+                console.log('Creating new node')
+            }
+
+            // del + backspace: delete selectedNodes
+            if(!isInputField && (event.key === 'Delete' || event.key === 'Backspace')){
+                event.preventDefault();
+                event.stopPropagation();
+                deleteSelectedNodes();
+                console.log('Deleting nodes');
+            }
+
+            // esc
+            if(event.key === 'Escape'){
+                event.preventDefault();
+                event.stopPropagation();
+                setNodes((nds) => nds.map((node) => ({...node, selected:false})))
+                setEdges((eds) => eds.map((edge) => ({...edge, selected:false})))
+                console.log('Deselecting all');
+            }  
+        };
+
+        document.addEventListener('keydown', handleKeyDown, true);
+        return () => document.removeEventListener('keydown', handleKeyDown, true);
+    }, [addPromptNode, deleteSelectedNodes]);
     
+   /*
+        validating proper node connection
+   */
     const isValidConnection = useCallback((connection: Connection | Edge) => {
         // Prevent connecting to self
         if (connection.source === connection.target) {
@@ -91,7 +160,7 @@ function SimpleFlow() {
 
             const newEdge: Edge = {
                 ...connection,
-                id: `e${connection.source}-connection.target`,
+                id: `e${connection.source}-${connection.target}`,
                 type: 'default',
                 markerEnd: {
                     type: MarkerType.ArrowClosed,
@@ -127,7 +196,12 @@ function SimpleFlow() {
                 left: 10,
                 zIndex: 10,
                 display: 'flex',
-                gap: '10px',
+                flexDirection: 'column',
+                gap: '5px',
+                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                padding: '10px',
+                borderRadius: '8px',
+                fontSize: '12px',
             }}>
                 <button
                     onClick={addPromptNode}
@@ -144,7 +218,27 @@ function SimpleFlow() {
                 >
                     + Add Prompt Node
                 </button>
-            </div>
+                <div><strong>Shortcuts:</strong></div>
+                <div>Shift + N: New Node</div>
+                <div>Delete/Backspace: Delete</div>
+                <div>Esc: Deselect All</div>
+                <div>Enter: Submit (when node selected)</div>
+
+                {/* Debug: Show selected nodes */}
+                <div style={{marginTop: '10px', color: 'blue'}}>
+                    Selected: {nodes.filter(n => n.selected).map(n => n.id).join(', ') || 'None'}
+                </div>
+                
+                {/* Test button to select first node */}
+                <button onClick={() => {
+                    setNodes((nds) => nds.map((node, i) => ({
+                        ...node,
+                        selected: i === 0
+                    })));
+                }}>
+                    Select First Node (Test)
+                </button>
+                </div>
             {/* <ReactFlowProvider> */}
                 <ReactFlow
                     nodes = {nodes}
@@ -157,6 +251,7 @@ function SimpleFlow() {
                     isValidConnection = {isValidConnection}
                     connectOnClick = {false}
                     fitView
+                    
                 >
                     <Background variant={BackgroundVariant.Dots} gap={12} size={1}/>
                     <MiniMap />

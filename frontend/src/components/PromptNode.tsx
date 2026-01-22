@@ -1,10 +1,9 @@
 import {
     Handle,
     Position, 
-    useUpdateNodeInternals,
     type NodeProps
 } from '@xyflow/react'
-import { useEffect, useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 
 import './PromptNode.css';
 
@@ -14,21 +13,17 @@ import './PromptNode.css';
 // }
 
 
-function PromptNode({ id, data } : NodeProps) {
+function PromptNode({ id, selected} : NodeProps) {
 
     const [inputValue, setInputValue] = useState('');
     const [displayedPrompt, setDisplayedPrompt] = useState('')
-
-    const updateNodeInternals = useUpdateNodeInternals();
-    const handleCount = (data.handleCount as number  | undefined)|| 1;
-
-    useEffect(() => {
-        updateNodeInternals(id);
-    }, [handleCount, id, updateNodeInternals]);
+    const [isEditing, setIsEditing] = useState(false);
+    const inputRef = useRef<HTMLInputElement>(null);
 
     const doSomething = useCallback(() => {
             console.log('pressed submit');
             setDisplayedPrompt(inputValue);
+            setIsEditing(false);
             
             // send prompt to whatever LLM
 
@@ -36,44 +31,62 @@ function PromptNode({ id, data } : NodeProps) {
             // display response 
         }, [inputValue]);
 
+
+    // focus input when entering edit mode
+    useEffect(() => {
+        if(isEditing && inputRef.current){
+            inputRef.current.focus();
+        }
+    }, [isEditing]);
+
     return (
-        <div className = "text-updater-node">
+        <div className = {`prompt-node ${selected ? 'selected': ''}`}>
             <div>
-                <label htmlFor={`test-${id}`}>Prompt</label>
-                <input 
-                    id={`test-${id}`} 
-                    name="text" 
-                    className="nodrag"
-                    value = {inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                />
+                <label htmlFor={`prompt-input-${id}`}>Prompt</label>
+                {isEditing ? (
+                    <input 
+                        id={`prompt-input-${id}`}
+                        name={`prompt-${id}`}
+                        ref={inputRef}
+                        className="nodrag"
+                        value={inputValue}
+                        onChange={(e) => setInputValue(e.target.value)}
+                        onBlur={() => setIsEditing(false)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.ctrlKey) {
+                                e.preventDefault();
+                                doSomething();
+                            }
+                            if (e.key === 'Escape') {
+                                setIsEditing(false);
+                            }
+                        }}
+                    />
+                ) : (
+                    <div 
+                        className="prompt-preview"
+                        onClick={(e) => {
+                            // only enter edit mode on single click without shift
+                            if(!e.ctrlKey){
+                                setIsEditing(true);
+                            }
+                        }}
+                    >
+                        {inputValue || 'Click to edit prompt...'}
+                    </div>
+                )}
                 <Handle type='source' position={Position.Top} id = 'output' style = {{opacity: 0 }}/>
                 <Handle type='target' position = {Position.Bottom} id = 'input' style = {{ opacity: 0}} />
 
-                {/* {
-                    Array.from({ length: handleCount}).map((_, index) => (
-                        <Handle
-                            key = {index}
-                            type = "target"
-                            position = {Position.Left}
-                            id = {`handle-${index}`}
-                            style={{
-                                 top: `${(index + 1) * (100 / (handleCount + 1))}%`,
-                            }}
-                        />
-                    ))
-                } */}
-
-                <div>
-                    <button onClick={doSomething} className = "nodrag">Submit</button>
-                </div>
-                {
-                    displayedPrompt && (
-                        <div className = "text-display-area">
-                            {displayedPrompt}
-                        </div>
-                    )
-                }
+                {isEditing ? (
+                    <button onClick={doSomething} className="nodrag">
+                        Submit
+                    </button>
+                ) : displayedPrompt && (
+                    <div className="text-display-area">
+                        {displayedPrompt}
+                    </div>
+                )}
 
             </div>
         </div>
