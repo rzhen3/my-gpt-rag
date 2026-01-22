@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from modules.llm.api import router as llm_router
 
 # "uvicorn main:app" where 'main' corresponds to file, 'app' corresponds to variable name
 app = FastAPI(
@@ -10,6 +11,7 @@ app = FastAPI(
     redoc_url = '/redoc',
 )
 
+# add middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -18,7 +20,8 @@ app.add_middleware(
     allow_headers = ["*"]
 )
 
-
+# add LLM module router
+app.include_router(llm_router, prefix="/api/workflow", tags=["llm"])
 
 @app.get("/")
 def read_root():

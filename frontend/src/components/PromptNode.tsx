@@ -7,10 +7,6 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 
 import './PromptNode.css';
 
-// type TextUpdaterData = {
-//     label?: string;
-//     handleCount?: number;
-// }
 
 
 function PromptNode({ id, selected} : NodeProps) {

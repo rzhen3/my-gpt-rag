@@ -48,8 +48,6 @@ function SimpleFlow() {
     const [edges, setEdges] = useState(initialEdges);
     const [nodeIdCounter, setNodeIdCounter] = useState(4);
 
-    // const { screenToFlowPosition, getViewport } = useReactFlow();
-
 
     const onNodesChange: OnNodesChange = useCallback(
         (changes) => setNodes((nodesSnapshot) => applyNodeChanges(changes, nodesSnapshot)), []
