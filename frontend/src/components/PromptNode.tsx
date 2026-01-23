@@ -6,7 +6,7 @@ import {
 import { useState, useCallback, useRef, useEffect } from 'react';
 
 import './PromptNode.css';
-
+import {executeNode} from '../api/client';
 
 
 function PromptNode({ id, selected} : NodeProps) {
@@ -16,16 +16,21 @@ function PromptNode({ id, selected} : NodeProps) {
     const [isEditing, setIsEditing] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
 
-    const doSomething = useCallback(() => {
+    const doSomething = useCallback(async () => {
             console.log('pressed submit');
             setDisplayedPrompt(inputValue);
             setIsEditing(false);
             
             // send prompt to whatever LLM
-
+            try{
+                const response = await executeNode(id, inputValue);
+                console.log('Backend response:', response);
+            } catch(error){
+                console.error('Error calling backend:', error);
+            }
 
             // display response 
-        }, [inputValue]);
+        }, [inputValue, id]);
 
 
     // focus input when entering edit mode
