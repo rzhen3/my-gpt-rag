@@ -66,11 +66,12 @@ class Node(Base):
     node_type = Column(String(15), nullable = False)    # 'prompt', 'document', etc (TODO: implement later, only text for now)
     type_data = Column(JSONB, default = {}, nullable = False)
     
-    # if this is True, then we simply store a key to GCS or S3 as the prompt text(TODO: post-MVP)
+
         
     prompt_text = Column(Text, nullable = False)
     response_text = Column(Text, nullable = True)
     is_large_content = Column(Boolean, default = False)
+    # if this is True, then we simply store a key to GCS or S3 as the prompt text(TODO: post-MVP)
 
     # each node has one conversation
     conversation = relationship("Conversation", back_populates="nodes")

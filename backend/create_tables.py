@@ -3,7 +3,7 @@ setup script to create all database tables. run once to initialize schema
 """
 
 from core.database import engine, Base
-from modules.storage.models import User
+from modules.storage.models import User, Conversation, Node, Edge
 
 def create_tables():
     print("Creating database tables...")
