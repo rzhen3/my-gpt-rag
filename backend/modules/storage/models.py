@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey, ARRAY, Boolean
+from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey, ARRAY, Boolean, Index
 from sqlalchemy.dialects.postgresql.json import JSONB
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
@@ -46,7 +46,7 @@ class Conversation(Base):
     nodes = relationship("Node", back_populates="conversation", cascade="all, delete-orphan")
     
     def __repr__(self):
-        return f"<Conversation(id={self.id}, title={self.name}, user={self.user_id})>"
+        return f"<Conversation(id={self.id}, title={self.title}, user={self.user_id})>"
     
 
 
@@ -58,8 +58,9 @@ class Node(Base):
 
     id = Column(Integer, primary_key = True, index = True)
     conversation_id = Column(Integer, ForeignKey("conversations.id", ondelete = "CASCADE"), nullable = False)
+
     created_at = Column(DateTime(timezone = True), server_default = func.now())
-    ancestor_ids = Column(ARRAY(Integer), default = [], nullable = False)
+    ancestor_ids = Column(ARRAY(Integer), default = [], nullable = False)       # for performance optimization
 
     # for various node types ('prompt', 'document', 'img') TODO: post-MVP
     node_type = Column(String(15), nullable = False)    # 'prompt', 'document', etc (TODO: implement later, only text for now)
@@ -77,5 +78,23 @@ class Node(Base):
 
 class Edge(Base):
     """
-    stores all edges?
+    stores all edges.
+    needed to reconstruct DAG from adjacency list.
     """
+
+    __tablename__ = "edges"
+
+    id = Column(Integer, primary_key = True)
+    conversation_id = Column(Integer, ForeignKey("conversations.id", ondelete="CASCADE"))
+
+    # store exact edges
+    source_node_id = Column(Integer, ForeignKey("nodes.id", ondelete = "CASCADE"), nullable = False)
+    target_node_id = Column(Integer, ForeignKey("nodes.id", ondelete="CASCADE"), nullable = False)
+
+    __table_args__ = (
+        Index('ix_edge_source', 'source_node_id'),  # NOTE: might remove b/c unnecessary overhead
+        Index('ix_edge_target', 'target_node_id'),  # NOTE: might remove b/c unnecessary overhead
+        Index('ix_edge_conversation', 'conversation_id')
+    )
+
+# TODO: consider using a closure table for faster ancestor lookups (graphDB only useful for 100k nodes, and will be just for fun)
