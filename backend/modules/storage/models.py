@@ -1,5 +1,7 @@
-from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey, ARRAY, Boolean
+from sqlalchemy.dialects.postgresql.json import JSONB
 from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
 from core.database import Base
 
 class User(Base):
@@ -20,5 +22,60 @@ class User(Base):
     created_at = Column(DateTime(timezone = True), server_default = func.now())
     updated_at = Column(DateTime(timezone = True), onupdate = func.now())
 
+    # setup relationships
+    conversations = relationship("Conversation", back_populates="owner")
+
     def __repr__(self):
         return f"<User(id={self.id}, email={self.email})>"
+    
+
+class Conversation(Base):
+    """
+    grouping of nodes and their edges.
+    """
+    __tablename__="conversations"
+
+    id = Column(Integer, primary_key = True, index = True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete= "CASCADE"), nullable = False)
+    title = Column(String(255), nullable = False)
+    created_at = Column(DateTime(timezone = True), server_default=func.now())
+    updated_at = Column(DateTime(timezone = True), onupdate = func.now())
+
+    # setup relationships
+    owner = relationship("User", back_populates="conversations")
+    nodes = relationship("Node", back_populates="conversation", cascade="all, delete-orphan")
+    
+    def __repr__(self):
+        return f"<Conversation(id={self.id}, title={self.name}, user={self.user_id})>"
+    
+
+
+class Node(Base):
+    """
+    stores all nodes.
+    """
+    __tablename__ = "nodes"
+
+    id = Column(Integer, primary_key = True, index = True)
+    conversation_id = Column(Integer, ForeignKey("conversations.id", ondelete = "CASCADE"), nullable = False)
+    created_at = Column(DateTime(timezone = True), server_default = func.now())
+    ancestor_ids = Column(ARRAY(Integer), default = [], nullable = False)
+
+    # for various node types ('prompt', 'document', 'img') TODO: post-MVP
+    node_type = Column(String(15), nullable = False)    # 'prompt', 'document', etc (TODO: implement later, only text for now)
+    type_data = Column(JSONB, default = {}, nullable = False)
+    
+    # if this is True, then we simply store a key to GCS or S3 as the prompt text(TODO: post-MVP)
+        
+    prompt_text = Column(Text, nullable = False)
+    response_text = Column(Text, nullable = True)
+    is_large_content = Column(Boolean, default = False)
+
+    # each node has one conversation
+    conversation = relationship("Conversation", back_populates="nodes")
+
+
+class Edge(Base):
+    """
+    stores all edges?
+    """
