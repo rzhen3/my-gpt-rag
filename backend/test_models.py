@@ -15,11 +15,12 @@ def test_create_conversation():
         user = User(name = "bob", email="bob.123@gmail.com")
         db.add(user)
         db.commit()
-        db.refresh(user)    # user receives 'id' after refresh()
+        db.refresh(user)
+        print(user)
         
         # create conversation for this user
         conversation = Conversation(
-            user_id = 30,
+            user_id = user.id,
             title = "first convo"
         )
         db.add(conversation)

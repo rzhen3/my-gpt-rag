@@ -23,10 +23,10 @@ class User(Base):
     updated_at = Column(DateTime(timezone = True), onupdate = func.now())
 
     # setup relationships
-    conversations = relationship("Conversation", back_populates="owner")
+    conversations = relationship("Conversation", back_populates="owner", cascade = "all, delete-orphan")
 
     def __repr__(self):
-        return f"<User(id={self.id}, email={self.email})>"
+        return f"<User(id={self.id}, name={self.name}, email={self.email})>"
     
 
 class Conversation(Base):
