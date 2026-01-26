@@ -14,19 +14,28 @@ function PromptNode({ id, selected} : NodeProps) {
     const [inputValue, setInputValue] = useState('');
     const [displayedPrompt, setDisplayedPrompt] = useState('')
     const [isEditing, setIsEditing] = useState(false);
+    const [responseText, setResponseText] = useState('')
+
     const inputRef = useRef<HTMLInputElement>(null);
 
     const doSomething = useCallback(async () => {
             console.log('pressed submit');
             setDisplayedPrompt(inputValue);
             setIsEditing(false);
+            setResponseText('Loading...');
             
             // send prompt to whatever LLM
             try{
                 const response = await executeNode(id, inputValue);
                 console.log('Backend response:', response);
+
+                // update response text in node
+                if(response.response){
+                    setResponseText(response.response)
+                }
             } catch(error){
                 console.error('Error calling backend:', error);
+                setResponseText('Error: Failed to ger response');
             }
 
             // display response 
@@ -84,9 +93,20 @@ function PromptNode({ id, selected} : NodeProps) {
                         Submit
                     </button>
                 ) : displayedPrompt && (
-                    <div className="text-display-area">
-                        {displayedPrompt}
-                    </div>
+                    <>
+                        <div className="text-display-area">
+                            {displayedPrompt}
+                        </div>
+                        {
+                            responseText && (
+                                <div className="text-display-area"
+                                    style={{marginTop: '10px', backgroundColor: '#e8f5e9'}}>
+                                        <strong>Response:</strong> {responseText}
+                                </div>
+                            )
+                        }
+                    </>
+                    
                 )}
 
             </div>

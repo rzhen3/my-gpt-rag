@@ -8,7 +8,8 @@ export interface ExecuteNodeRequest {
 export interface ExecuteNodeResponse {
     status: string;
     node_id: string;
-    message: string;
+    message?: string;
+    response?: string;
 }
 
 export const executeNode = async (

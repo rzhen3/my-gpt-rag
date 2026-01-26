@@ -1,5 +1,7 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
+
 from .models import ExecuteNodeRequest
+from .gemini_client import gemini_client
 
 router = APIRouter()
 
@@ -15,8 +17,18 @@ async def execute_node(request: ExecuteNodeRequest):
     print(f"Prompt: {request.prompt}")
     print(f"{'='*50}\n")
 
-    return {
-        "status": "success",
-        "node_id": request.node_id,
-        "message": "Prompt received and logged to console"
-    }
+    # call LLM 
+    try:
+        response_text = await gemini_client.generate_response(request.prompt)
+
+        print(F"Response: {response_text[:100]}...")
+        return {
+            "status": "success",
+            "node_id": request.node_id,
+            "response": response_text
+        }
+    except Exception as e:
+        print(f"Error: {e}")
+        raise HTTPException(status_code=500, detail = str(e))
+
+    
