@@ -3,7 +3,7 @@ import {
     Position, 
     type NodeProps
 } from '@xyflow/react'
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 
 import './PromptNode.css';
 import {executeNode} from '../api/client';
@@ -12,103 +12,63 @@ import {executeNode} from '../api/client';
 function PromptNode({ id, selected} : NodeProps) {
 
     const [inputValue, setInputValue] = useState('');
-    const [displayedPrompt, setDisplayedPrompt] = useState('')
-    const [isEditing, setIsEditing] = useState(false);
-    const [responseText, setResponseText] = useState('')
+    const [responseText, setResponseText] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
 
-    const inputRef = useRef<HTMLInputElement>(null);
+    const handleSubmit = useCallback(async () => {
 
-    const doSomething = useCallback(async () => {
-            console.log('pressed submit');
-            setDisplayedPrompt(inputValue);
-            setIsEditing(false);
-            setResponseText('Loading...');
-            
-            // send prompt to whatever LLM
-            try{
-                const response = await executeNode(id, inputValue);
-                console.log('Backend response:', response);
+        if (!inputValue.trim()) return; // don't submit if empty
+        
+        console.log('pressed submit');
+        setIsLoading(true);
+        setResponseText('Loading...');
+        
+        // send prompt to whatever LLM
+        try{
+            const response = await executeNode(id, inputValue);
+            console.log('Backend response:', response);
 
-                // update response text in node
-                if(response.response){
-                    setResponseText(response.response)
-                }
-            } catch(error){
-                console.error('Error calling backend:', error);
-                setResponseText('Error: Failed to ger response');
+            // update response text in node
+            if(response.response){
+                setResponseText(response.response)
             }
-
-            // display response 
-        }, [inputValue, id]);
-
-
-    // focus input when entering edit mode
-    useEffect(() => {
-        if(isEditing && inputRef.current){
-            inputRef.current.focus();
+        } catch(error){
+            console.error('Error calling backend:', error);
+            setResponseText('Error: Failed to ger response');
         }
-    }, [isEditing]);
+
+        // display response 
+    }, [inputValue, id]);
 
     return (
         <div className = {`prompt-node ${selected ? 'selected': ''}`}>
             <div>
                 <label htmlFor={`prompt-input-${id}`}>Prompt</label>
-                {isEditing ? (
-                    <input 
-                        id={`prompt-input-${id}`}
-                        name={`prompt-${id}`}
-                        ref={inputRef}
-                        className="nodrag"
-                        value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
-                        onBlur={() => setIsEditing(false)}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.ctrlKey) {
-                                e.preventDefault();
-                                doSomething();
-                            }
-                            if (e.key === 'Escape') {
-                                setIsEditing(false);
-                            }
-                        }}
-                    />
-                ) : (
-                    <div 
-                        className="prompt-preview"
-                        onClick={(e) => {
-                            // only enter edit mode on single click without shift
-                            if(!e.ctrlKey){
-                                setIsEditing(true);
-                            }
-                        }}
-                    >
-                        {inputValue || 'Click to edit prompt...'}
-                    </div>
-                )}
+                <textarea
+                    id = {`prompt-input-${id}`}
+                    className = "nodrag prompt-input"
+                    value={inputValue}
+                    onChange={(e)=>setInputValue(e.target.value)}
+                    placeholder="Enter your prompt..."
+                />
+                <button
+                    onClick={handleSubmit}
+                    className="nodrag submit-button"
+                    disabled={!inputValue.trim() || isLoading}
+                >
+                    Submit
+                </button>
+
+                <label htmlFor={`prompt-output-${id}`}>Output</label>
+                <div
+                    id={`prompt-output-${id}`}
+                    className="prompt-output"
+                >
+                    {responseText || 'Awaiting your command...'}
+                </div>
+
                 <Handle type='source' position={Position.Top} id = 'output' style = {{opacity: 0 }}/>
                 <Handle type='target' position = {Position.Bottom} id = 'input' style = {{ opacity: 0}} />
-
-                {isEditing ? (
-                    <button onClick={doSomething} className="nodrag">
-                        Submit
-                    </button>
-                ) : displayedPrompt && (
-                    <>
-                        <div className="text-display-area">
-                            {displayedPrompt}
-                        </div>
-                        {
-                            responseText && (
-                                <div className="text-display-area"
-                                    style={{marginTop: '10px', backgroundColor: '#e8f5e9'}}>
-                                        <strong>Response:</strong> {responseText}
-                                </div>
-                            )
-                        }
-                    </>
-                    
-                )}
-
             </div>
         </div>
     );
