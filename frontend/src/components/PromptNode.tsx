@@ -7,6 +7,10 @@ import { useState, useCallback } from 'react';
 
 import './PromptNode.css';
 import {executeNode} from '../api/client';
+import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
 
 
 function PromptNode({ id, selected} : NodeProps) {
@@ -59,12 +63,21 @@ function PromptNode({ id, selected} : NodeProps) {
                     Submit
                 </button>
 
-                <label htmlFor={`prompt-output-${id}`}>Output</label>
+                <div className="output-label">Output</div>
                 <div
                     id={`prompt-output-${id}`}
                     className="prompt-output"
                 >
-                    {responseText || 'Awaiting your command...'}
+                    {responseText ? (
+                        <ReactMarkdown
+                            remarkPlugins={[remarkMath]}
+                            rehypePlugins={[rehypeKatex]}
+                        >
+                            {responseText}
+                        </ReactMarkdown>
+                    ) : (
+                        <span style={{ color: '#999' }}>Response will appear here...</span>
+                    )}
                 </div>
 
                 <Handle type='source' position={Position.Top} id = 'output' style = {{opacity: 0 }}/>

@@ -5,7 +5,7 @@ from .config import llm_settings
 class GeminiClient:
     def __init__(self):
         self.client = genai.Client(api_key=llm_settings.GEMINI_API_KEY)
-        self.model = "gemini-2.0-flash-exp"
+        self.model = "gemini-2.0-flash"
 
     async def generate_response(self, prompt: str)-> str:
         """
