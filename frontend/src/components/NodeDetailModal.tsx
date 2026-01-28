@@ -4,6 +4,7 @@ import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 
 import './NodeDetailModal.css';
+import { createPortal } from 'react-dom';
 
 interface NodeDetailModalProps {
     isOpen: boolean;
@@ -13,28 +14,32 @@ interface NodeDetailModalProps {
     outputText: string;
 }
 
+
 function NodeDetailModal({ isOpen, onClose, nodeId, inputText, outputText }: NodeDetailModalProps){
     
     useEffect(() => {
         const handleEscape = (e: KeyboardEvent) => {
-            if (e.key === "Escape"){
-                onClose()
+            if (e.key === "Escape" && isOpen){
+                e.preventDefault();
+                e.stopPropagation();
+                onClose();
             }
         };
 
         if (isOpen){
-            document.addEventListener('keydown', handleEscape);
+            document.addEventListener('keydown', handleEscape, true);
+            document.body.style.overflow = 'hidden';
         }
 
         return () => {
-            document.removeEventListener('keydown', handleEscape);
+            document.removeEventListener('keydown', handleEscape, true);
             document.body.style.overflow = 'unset';
         }
     }, [isOpen, onClose])
 
     if (!isOpen) return null;
 
-    return (
+    return createPortal(
         <div className = 'modal-overlay' onClick = {onClose}>
 
             <div className = 'modal-content' onClick = {(e) => e.stopPropagation()}>
@@ -70,7 +75,8 @@ function NodeDetailModal({ isOpen, onClose, nodeId, inputText, outputText }: Nod
                     </div>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     )
 }
 
