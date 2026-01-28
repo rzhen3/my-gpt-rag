@@ -7,10 +7,7 @@ import { useState, useCallback } from 'react';
 
 import './PromptNode.css';
 import {executeNode} from '../api/client';
-import ReactMarkdown from 'react-markdown';
-import remarkMath from 'remark-math';
-import rehypeKatex from 'rehype-katex';
-import 'katex/dist/katex.min.css';
+import NodeDetailModal from './NodeDetailModal';
 
 
 function PromptNode({ id, selected} : NodeProps) {
@@ -18,6 +15,7 @@ function PromptNode({ id, selected} : NodeProps) {
     const [inputValue, setInputValue] = useState('');
     const [responseText, setResponseText] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     const handleSubmit = useCallback(async () => {
 
@@ -65,24 +63,24 @@ function PromptNode({ id, selected} : NodeProps) {
 
                 <div className="output-label">Output</div>
                 <div
-                    id={`prompt-output-${id}`}
-                    className="prompt-output"
+                    className="prompt-output nodrag"
+                    onDoubleClick={() => setIsModalOpen(true)}
+                    title="Double-click to expand"
                 >
-                    {responseText ? (
-                        <ReactMarkdown
-                            remarkPlugins={[remarkMath]}
-                            rehypePlugins={[rehypeKatex]}
-                        >
-                            {responseText}
-                        </ReactMarkdown>
-                    ) : (
-                        <span style={{ color: '#999' }}>Response will appear here...</span>
-                    )}
+                    {responseText || <span style = {{ color: '#999'}}>Response will appear here...</span>}
                 </div>
 
                 <Handle type='source' position={Position.Top} id = 'output' style = {{opacity: 0 }}/>
                 <Handle type='target' position = {Position.Bottom} id = 'input' style = {{ opacity: 0}} />
             </div>
+
+            <NodeDetailModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                nodeId = {id}
+                inputText = {inputValue}
+                outputText = {responseText}
+            />
         </div>
     );
 }
