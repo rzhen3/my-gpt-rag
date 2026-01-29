@@ -13,9 +13,13 @@ interface ModalContextType {
     closeModal: () => void;
 }
 
+interface ModalProviderProps {
+    children: ReactNode;
+}
+
 const ModalContext = createContext<ModalContextType | undefined> (undefined);
 
-export function ModalProvider({ children }: {children: ReactNode}){
+export function ModalProvider({ children }: ModalProviderProps){
     const [isOpen, setIsOpen] = useState(false);
     const [modalData, setModalData] = useState<ModalData | null>(null);
 
@@ -26,8 +30,7 @@ export function ModalProvider({ children }: {children: ReactNode}){
 
     const closeModal = () => {
         setIsOpen(false);
-        
-        setTimeout(() => setModalData(null), 300);
+        setModalData(null);
     };
 
     return (
@@ -40,7 +43,7 @@ export function ModalProvider({ children }: {children: ReactNode}){
 
 export function useModal() {
     const context = useContext(ModalContext);
-    if(!context){
+    if(context === undefined){
         throw new Error('useModal must be used within ModalProvider');
     }
     return context;

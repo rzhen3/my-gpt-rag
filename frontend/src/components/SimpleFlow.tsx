@@ -9,7 +9,12 @@ import { ReactFlow, ConnectionMode,
     applyEdgeChanges, 
     addEdge, 
     // useReactFlow,
-    type Node, type Edge, type OnNodesChange, type OnEdgesChange, type OnConnect, type NodeTypes,
+    type Node, 
+    type Edge, 
+    type OnNodesChange, 
+    type OnEdgesChange, 
+    type OnConnect, 
+    type NodeTypes,
     type Connection,
     } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
@@ -86,9 +91,9 @@ function SimpleFlow() {
     /*
         delete selected nodes
     */
-   const deleteSelectedNodes = useCallback(() => {
+   const deleteSelected = useCallback(() => {
         const selectedNodes = nodes.filter((node) => node.selected);
-
+        const selectedEdges = edges.filter((edge) => edge.selected);
         const selectedNodeIds = selectedNodes.map((node) => node.id);
 
         if (selectedNodeIds.length > 0){
@@ -98,13 +103,18 @@ function SimpleFlow() {
             ));
         }
 
-   }, [nodes]);
+        if(selectedEdges.length > 0){
+            setEdges((eds) => eds.filter((edge) => !edge.selected));
+        }
+
+   }, [nodes, edges]);
 
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
             const target = event.target as HTMLElement;
-
-            const isInputField = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+            const isInputField = target.tagName === 'INPUT' || 
+                target.tagName === 'TEXTAREA' || 
+                target.isContentEditable;
 
             // ctr + n: create new node
             if((event.shiftKey) && event.key === 'N'){
@@ -118,7 +128,7 @@ function SimpleFlow() {
             if(!isInputField && (event.key === 'Delete' || event.key === 'Backspace')){
                 event.preventDefault();
                 event.stopPropagation();
-                deleteSelectedNodes();
+                deleteSelected();
                 console.log('Deleting nodes');
             }
 
@@ -134,7 +144,7 @@ function SimpleFlow() {
 
         document.addEventListener('keydown', handleKeyDown, true);
         return () => document.removeEventListener('keydown', handleKeyDown, true);
-    }, [addPromptNode, deleteSelectedNodes]);
+    }, [addPromptNode, deleteSelected]);
     
    /*
         validating proper node connection
@@ -145,10 +155,28 @@ function SimpleFlow() {
             return false;
         }
 
+        const connectionExists = edges.some(
+            (edge) => 
+                edge.source === connection.source &&
+                edge.target === connection.target
+        );
+
+        if(connectionExists){
+            return false;
+        }
+
         const isDuplicate = edges.some(
             (edge) => 
-                edge.source === connection.source && edge.target === connection.target
+            edge.source === connection.source && 
+            edge.target === connection.target
         );
+
+        if (connection.sourceHandle?.startsWith('input-')) {
+            return false;
+        }
+        if (connection.targetHandle?.startsWith('output-')) {
+            return false;
+        }
 
         return !isDuplicate;
     }, [edges]);
@@ -156,15 +184,21 @@ function SimpleFlow() {
     const onConnect: OnConnect = useCallback(
         (connection) => {
 
+
+            // Create unique edge ID that includes handle information
+            const edgeId = `e${connection.source}-${connection.target}`;
+
             const newEdge: Edge = {
                 ...connection,
-                id: `e${connection.source}-${connection.target}`,
+                id: edgeId,
                 type: 'default',
+                selectable: true,
+                focusable: true,
                 markerEnd: {
                     type: MarkerType.ArrowClosed,
                     width: 10,
                     height: 10,
-                    color: '#000'
+                    color: '#555'
                 },
 
                 data: {
@@ -249,14 +283,6 @@ function SimpleFlow() {
                     isValidConnection = {isValidConnection}
                     connectOnClick = {false}
                     fitView
-
-                    defaultEdgeOptions={{
-                        type: 'default',
-                        markerEnd : {type: MarkerType.ArrowClosed, width: 20, height: 20},
-                        style: {strokeWidth: 2, stroke: '#555'}
-                    }}
-                    
-                    onlyRenderVisibleElements={true}
                     elevateEdgesOnSelect={true}
                 >
                     <Background variant={BackgroundVariant.Dots} gap={12} size={1}/>

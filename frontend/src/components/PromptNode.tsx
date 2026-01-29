@@ -3,20 +3,20 @@ import {
     Position, 
     type NodeProps
 } from '@xyflow/react'
-import { useState, useCallback, memo } from 'react';
+import { useState, useCallback, memo, useMemo } from 'react';
 
 import './PromptNode.css';
 import {executeNode} from '../api/client';
 import {useModal} from '../contexts/ModalContext'
 
 
-function PromptNode({ id, selected} : NodeProps) {
+function PromptNode({ id, selected, dragging} : NodeProps) {
 
     const [inputValue, setInputValue] = useState('');
     const [responseText, setResponseText] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [isHovered, setIsHovered] = useState(false);
     const {openModal} = useModal();
+
 
     const handleSubmit = useCallback(async () => {
 
@@ -38,6 +38,8 @@ function PromptNode({ id, selected} : NodeProps) {
         } catch(error){
             console.error('Error calling backend:', error);
             setResponseText('Error: Failed to ger response');
+        }finally{
+            setIsLoading(false)
         }
 
         // display response 
@@ -49,15 +51,20 @@ function PromptNode({ id, selected} : NodeProps) {
             inputText: inputValue,
             outputText: responseText
         });
-    }, [id, inputValue, responseText, openModal])
+    }, [id, inputValue, responseText, openModal]);
+
+    const outputDisplay = useMemo(() => {
+        if(dragging){
+            return 'Moving...';
+        }
+        if(!responseText){
+            return <span style = {{ color: '#999'}}> Response will appear here...</span>;
+        }
+        return responseText;
+    }, [responseText, dragging])
 
     return (
-        <div 
-            className = {`prompt-node ${selected ? 'selected': ''}`}
-            onMouseEnter = {() => setIsHovered(true)}
-            onMouseLeave={()=> setIsHovered(false)}
-        >
-            <div>
+        <div className = {`prompt-node ${selected ? 'selected': ''}`}>
                 <label htmlFor={`prompt-input-${id}`}>Prompt</label>
                 <textarea
                     id = {`prompt-input-${id}`}
@@ -82,61 +89,35 @@ function PromptNode({ id, selected} : NodeProps) {
                     onDoubleClick={handleOpenModal}
                     title="Double-click to expand"
                 >
-                    {responseText || <span style = {{ color: '#999'}}>Response will appear here...</span>}
+                    {outputDisplay}
                 </div>
+                <Handle
+                    type="source"
+                    position={Position.Right}
+                    id="output-right"
+                    className="handle handle-source"
+                    // No inline style needed - pure CSS control
+                />
+                <Handle
+                    type="source"
+                    position={Position.Bottom}
+                    id="output-bottom"
+                    className="handle handle-source"
+                />
 
-                {
-                    isHovered && (
-                        <>
-                            <Handle
-                                type = 'source'
-                                position = {Position.Right}
-                                id = 'output-right'
-                                className="handle handle-source"
-                                style={{
-                                    right: -6,
-                                    top: '50%'
-                                }}
-                            />
-                            <Handle
-                                type = 'source'
-                                position= {Position.Bottom}
-                                id='output-bottom'
-                                className='handle handle-source'
-                                style={{
-                                    bottom: -6,
-                                    left: '50%'
-                                }}
-                            />
-                            <Handle
-                                type="target"
-                                position={Position.Left}
-                                id="input-left"
-                                className="handle handle-target"
-                                style={{
-                                    left: -6,
-                                    top: '50%',
-                                    opacity: 0, // Hidden by default, shown via CSS when connecting
-                                }}
-                            />
-                            <Handle
-                                type="target"
-                                position={Position.Top}
-                                id="input-top"
-                                className="handle handle-target"
-                                style={{
-                                    top: -6,
-                                    left: '50%',
-                                    opacity: 0,
-                                }}
-                            />
-                        </>
-                    )
-                }
-                <Handle type='source' position={Position.Top} id = 'output' style = {{opacity: 0 }}/>
-                <Handle type='target' position = {Position.Bottom} id = 'input' style = {{ opacity: 0}} />
+                <Handle
+                    type="target"
+                    position={Position.Left}
+                    id="input-left"
+                    className="handle handle-target"
+                />
+                <Handle
+                    type="target"
+                    position={Position.Top}
+                    id="input-top"
+                    className="handle handle-target"
+                />
             </div>
-        </div>
     );
 }
 // memoize to only prevent re-render when parent updates
