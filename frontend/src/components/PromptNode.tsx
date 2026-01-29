@@ -3,11 +3,11 @@ import {
     Position, 
     type NodeProps
 } from '@xyflow/react'
-import { useState, useCallback } from 'react';
+import { useState, useCallback, memo } from 'react';
 
 import './PromptNode.css';
 import {executeNode} from '../api/client';
-import NodeDetailModal from './NodeDetailModal';
+import {useModal} from '../contexts/ModalContext'
 
 
 function PromptNode({ id, selected} : NodeProps) {
@@ -15,7 +15,7 @@ function PromptNode({ id, selected} : NodeProps) {
     const [inputValue, setInputValue] = useState('');
     const [responseText, setResponseText] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    const {openModal} = useModal();
 
     const handleSubmit = useCallback(async () => {
 
@@ -42,6 +42,14 @@ function PromptNode({ id, selected} : NodeProps) {
         // display response 
     }, [inputValue, id]);
 
+    const handleOpenModal = useCallback(() => {
+        openModal({
+            nodeId: id,
+            inputText: inputValue,
+            outputText: responseText
+        });
+    }, [id, inputValue, responseText, openModal])
+
     return (
         <div className = {`prompt-node ${selected ? 'selected': ''}`}>
             <div>
@@ -51,7 +59,9 @@ function PromptNode({ id, selected} : NodeProps) {
                     className = "nodrag prompt-input"
                     value={inputValue}
                     onChange={(e)=>setInputValue(e.target.value)}
+                    onDoubleClick={handleOpenModal}
                     placeholder="Enter your prompt..."
+                    title="Double-click to expand"
                 />
                 <button
                     onClick={handleSubmit}
@@ -64,7 +74,7 @@ function PromptNode({ id, selected} : NodeProps) {
                 <div className="output-label">Output</div>
                 <div
                     className="prompt-output nodrag"
-                    onDoubleClick={() => setIsModalOpen(true)}
+                    onDoubleClick={handleOpenModal}
                     title="Double-click to expand"
                 >
                     {responseText || <span style = {{ color: '#999'}}>Response will appear here...</span>}
@@ -73,16 +83,16 @@ function PromptNode({ id, selected} : NodeProps) {
                 <Handle type='source' position={Position.Top} id = 'output' style = {{opacity: 0 }}/>
                 <Handle type='target' position = {Position.Bottom} id = 'input' style = {{ opacity: 0}} />
             </div>
-
-            <NodeDetailModal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                nodeId = {id}
-                inputText = {inputValue}
-                outputText = {responseText}
-            />
         </div>
     );
 }
+// memoize to only prevent re-render when parent updates
+export default memo(PromptNode, (prevProps, nextProps) => {
 
-export default PromptNode;
+    // only re-render if specific props change
+    return (
+        prevProps.id === nextProps.id &&
+        prevProps.selected === nextProps.selected &&
+        prevProps.dragging === nextProps.dragging
+    );
+});
