@@ -249,7 +249,15 @@ function SimpleFlow() {
                     isValidConnection = {isValidConnection}
                     connectOnClick = {false}
                     fitView
+
+                    defaultEdgeOptions={{
+                        type: 'default',
+                        markerEnd : {type: MarkerType.ArrowClosed, width: 20, height: 20},
+                        style: {strokeWidth: 2, stroke: '#555'}
+                    }}
                     
+                    onlyRenderVisibleElements={true}
+                    elevateEdgesOnSelect={true}
                 >
                     <Background variant={BackgroundVariant.Dots} gap={12} size={1}/>
                     <MiniMap />
