@@ -1,5 +1,6 @@
 import {createContext, useContext, useState, ReactNode } from 'react';
 
+/** setup context for the modal */
 interface ModalData{
     nodeId: string;
     inputText: string;

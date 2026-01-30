@@ -28,7 +28,7 @@ function PromptNode({ id, selected, dragging} : NodeProps) {
         
         // send prompt to whatever LLM
         try{
-            const response = await executeNode(id, inputValue);
+            const response = await executeNode({node_id: id, prompt: inputValue});
             console.log('Backend response:', response);
 
             // update response text in node

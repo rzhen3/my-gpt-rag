@@ -32,7 +32,7 @@ const testRequestQueue = async (): Promise<void> => {
 
     await Promise.all(promises)
 
-    console.log(promises)
+    console.log(`results: ${results}`)
     // expect: 1, 2, 3
     // otherwise: promise ordering is not handled properly by queue
 }
