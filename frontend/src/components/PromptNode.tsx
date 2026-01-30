@@ -15,9 +15,11 @@ function PromptNode({ id, selected, dragging} : NodeProps) {
     const [inputValue, setInputValue] = useState('');
     const [responseText, setResponseText] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+
+    // for opening modal panel from within the node
     const {openModal} = useModal();
 
-
+    // hitting submit
     const handleSubmit = useCallback(async () => {
 
         if (!inputValue.trim()) return; // don't submit if empty

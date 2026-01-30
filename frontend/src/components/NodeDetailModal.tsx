@@ -6,6 +6,8 @@ import { useModal } from '../contexts/ModalContext'
 import './NodeDetailModal.css';
 import { createPortal } from 'react-dom';
 
+/** Component for the detailed node viewing panel */
+
 const MarkdownContent = memo(({ content }: {content: string}) => (
     <ReactMarkdown
         remarkPlugins={[remarkMath]}
@@ -17,6 +19,7 @@ const MarkdownContent = memo(({ content }: {content: string}) => (
 
 
 function NodeDetailModal(){
+    /** import context for controlling Modal panel */
     const { isOpen, modalData, closeModal } = useModal();
     useEffect(() => {
         const handleEscape = (e: KeyboardEvent) => {
@@ -38,6 +41,7 @@ function NodeDetailModal(){
         }
     }, [isOpen, closeModal])
 
+    /** no component if no modalData or not open */
     if (!isOpen || !modalData) return null;
 
     return createPortal(

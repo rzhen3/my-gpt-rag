@@ -7,6 +7,7 @@ interface ModalData{
     outputText: string;
 }
 
+/** defines the fields of ModalContext */
 interface ModalContextType {
     isOpen: boolean;
     modalData: ModalData | null;
@@ -14,12 +15,14 @@ interface ModalContextType {
     closeModal: () => void;
 }
 
+/** for children components */
 interface ModalProviderProps {
     children: ReactNode;
 }
 
 const ModalContext = createContext<ModalContextType | undefined> (undefined);
 
+/** defines important fields for ModalContext and  */
 export function ModalProvider({ children }: ModalProviderProps){
     const [isOpen, setIsOpen] = useState(false);
     const [modalData, setModalData] = useState<ModalData | null>(null);
@@ -34,6 +37,7 @@ export function ModalProvider({ children }: ModalProviderProps){
         setModalData(null);
     };
 
+    /** sets up Provider for the ModalContext and imbues it with relevant fields */
     return (
         <ModalContext.Provider value = {{ isOpen, modalData, openModal, closeModal}}>
 
@@ -42,6 +46,7 @@ export function ModalProvider({ children }: ModalProviderProps){
     );
 };
 
+/** retrieves ModalContext */
 export function useModal() {
     const context = useContext(ModalContext);
     if(context === undefined){

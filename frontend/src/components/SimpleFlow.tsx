@@ -62,9 +62,7 @@ function SimpleFlow() {
         (changes) => setEdges((edgesSnapshot) => applyEdgeChanges(changes, edgesSnapshot)), []
     );
 
-    /*
-        create new prompt
-    */
+    /** create new prompt */
     const addPromptNode = useCallback(() => {
         const newNode: Node = {
             id: `n${nodeIdCounter}`,
@@ -88,9 +86,7 @@ function SimpleFlow() {
         setNodeIdCounter((count) => count + 1);
     }, [nodeIdCounter]);
 
-    /*
-        delete selected nodes
-    */
+    /** delete selected nodes */
    const deleteSelected = useCallback(() => {
         const selectedNodes = nodes.filter((node) => node.selected);
         const selectedEdges = edges.filter((edge) => edge.selected);
@@ -146,21 +142,19 @@ function SimpleFlow() {
         return () => document.removeEventListener('keydown', handleKeyDown, true);
     }, [addPromptNode, deleteSelected]);
     
-   /*
-        validating proper node connection
-   */
+   /** validating proper node connection */
     const isValidConnection = useCallback((connection: Connection | Edge) => {
         // Prevent connecting to self
         if (connection.source === connection.target) {
             return false;
         }
 
+        /** at most one connection between any two nodes */
         const connectionExists = edges.some(
             (edge) => 
                 edge.source === connection.source &&
                 edge.target === connection.target
         );
-
         if(connectionExists){
             return false;
         }
@@ -181,10 +175,9 @@ function SimpleFlow() {
         return !isDuplicate;
     }, [edges]);
 
+    /** creating new edge */
     const onConnect: OnConnect = useCallback(
         (connection) => {
-
-
             // Create unique edge ID that includes handle information
             const edgeId = `e${connection.source}-${connection.target}`;
 
@@ -212,9 +205,7 @@ function SimpleFlow() {
                 }
             }
 
-            // add edge
             setEdges((eds) => addEdge(newEdge, eds));
-                        
         }, []
     );
 
