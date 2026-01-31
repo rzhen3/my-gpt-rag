@@ -1,5 +1,9 @@
 import {useState, useCallback} from 'react';
 
+/**
+ * custom hook for PromptNode state management
+ */
+
 export interface NodeState{
     id: string;
     prompt: string;
