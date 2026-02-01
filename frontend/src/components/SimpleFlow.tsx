@@ -20,7 +20,8 @@ import { ReactFlow, ConnectionMode,
 import '@xyflow/react/dist/style.css';
 import PromptNode from './PromptNode';
 import {generateTempId} from '../utils/requestQueue';
-import {createNode as createNodeAPI} from '../api/client'
+import {createNode as createNodeAPI} from '../api/client';
+import {createEdge as createEdgeAPI} from '../api/client';
 
 const nodeTypes: NodeTypes = { prompt: PromptNode }
 
@@ -30,6 +31,7 @@ function SimpleFlow() {
     const [edges, setEdges] = useState<Edge[]>([]);
     const [nodeIdCounter, setNodeIdCounter] = useState(1);
     const [isCreatingNode, setIsCreatingNode] = useState(false);
+    const [deletedEdges, setDeletedEdges] = useState<string[]>([]);
 
     const [conversationId] = useState<string>('demo_conversation_001')
 
@@ -38,8 +40,18 @@ function SimpleFlow() {
     );
 
     const onEdgesChange: OnEdgesChange = useCallback(
-        (changes) => setEdges((edgesSnapshot) => applyEdgeChanges(changes, edgesSnapshot)), []
-    );
+        (changes) => {
+            const removedEdges = changes.filter(change => change.type === 'remove')
+                .map(change => (change as any).id);
+
+            if(removedEdges.length > 0){
+                console.log('[SimpleFlow] Edges removed:', removedEdges);
+                // TODO: eventually send delete request to backend. we just store them now
+                setDeletedEdges(prev => [...prev, ...removedEdges]);
+            }
+            setEdges((edgesSnapshot) => applyEdgeChanges(changes, edgesSnapshot))
+        }    
+    , []);
 
     /** create new prompt */
     const addPromptNode = useCallback(async () => {
@@ -194,13 +206,14 @@ function SimpleFlow() {
 
     /** creating new edge */
     const onConnect: OnConnect = useCallback(
-        (connection) => {
+        async (connection) => {
             // Create unique edge ID that includes handle information
-            const edgeId = `e${connection.source}-${connection.target}`;
+            // const edgeId = `e${connection.source}-${connection.target}`;
+            const tempEdgeId = generateTempId();
 
             const newEdge: Edge = {
                 ...connection,
-                id: edgeId,
+                id: tempEdgeId,
                 type: 'default',
                 selectable: true,
                 focusable: true,
@@ -216,14 +229,48 @@ function SimpleFlow() {
                     timestamp: new Date().toISOString(),
                 },
 
-                style: {
+                style: {// style for a pending edge
                     strokeWidth: 2,
-                    stroke: '#555'
+                    stroke: '#007bff',
+                    strokeDasharray: '5,5'
                 }
             }
 
             setEdges((eds) => addEdge(newEdge, eds));
-        }, []
+            console.log('[SimpleFlow] Created edge optimistically:', tempEdgeId);
+
+            // sync backend
+            try{
+                const response = await createEdgeAPI({
+                    source_id: connection.source!,
+                    target_id: connection.target!,
+                    conversation_id: conversationId,
+                })
+
+                console.log('[SimpleFlow] edge creation confirmed by backend:', response.edge_id)
+                setEdges((eds) => eds.map(edge => 
+                    edge.id === tempEdgeId
+                    ? {
+                        ...edge,
+                        id: response.edge_id,
+                        source: response.source_id,
+                        target: response.target_id,
+                        data: {...edge.data, status: 'confirmed'},
+                        style: {    // style change when confirmed
+                            strokeWidth: 2,
+                            stroke: '#555'
+                        }
+                    }
+                    : edge
+                ));
+
+                console.log(`[SimpleFlow] edge id reconciled with backend: ${tempEdgeId} -> ${response.edge_id}`);
+            }catch(error){
+                console.error('[SimpleFlow] failed to create edge:', error);
+                setEdges((eds) => eds.filter(edge => edge.id !== tempEdgeId));
+                alert('Failed to create edge. Please try again')
+            }
+        }, [conversationId]
     );
 
 
@@ -267,8 +314,8 @@ function SimpleFlow() {
                 <div style={{marginTop: '10px', fontSize: '11px', color: '#666'}}>
                     <strong>Debug Info:</strong>
                     <div>Total nodes: {nodes.length}</div>
-                    <div>Temp IDs: {nodes.filter(n => n.id.startsWith('temp_')).length}</div>
-                    <div>Real IDs: {nodes.filter(n => !n.id.startsWith('temp_')).length}</div>
+                    <div>Nodes: {nodes.length} (Temp: {nodes.filter(n => n.id.startsWith('temp_')).length})</div>
+                    <div>Edges: {edges.length} (Pending: {edges.filter(e => e.data?.status === 'pending').length})</div>
                 </div>
 
                 {/* Debug: Show selected nodes */}

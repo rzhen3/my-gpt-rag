@@ -33,6 +33,20 @@ export const createNode = async (
     request: CreateNodeRequest
 ): Promise<CreateNodeResponse> => {
     return apiQueue.enqueue(async () => {
+
+        // test by mocking network delay
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        const mockNodeId = Math.floor(Math.random() * 10000).toString();
+        console.log('[API Mock] Created node:', mockNodeId)
+
+        return {
+            status: 'success',
+            node_id: mockNodeId,
+            conversation_id: request.conversation_id || 'demo_conversation_001'
+        };
+
+        /* REAL IMPLEMENTATION
         const response = await fetch(`${API_BASE_URL}/api/nodes/create`, {
             method: 'POST',
             headers: {
@@ -46,6 +60,7 @@ export const createNode = async (
         }
 
         return await response.json()
+        */
     })
 }
 
@@ -54,18 +69,35 @@ export const createEdge = async (
     request: CreateEdgeRequest
 ): Promise<CreateEdgeResponse> => {
     return apiQueue.enqueue(async () => {
-        const response = await fetch(`${API_BASE_URL}/api/edge/create`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(request)
-        })
+        // mock network delay
+        await new Promise(resolve => setTimeout(resolve, 500));
 
-        if(!response.ok){
-            throw new Error(`Failed to create edge: ${response.status}`)
-        }
+        const mockEdgeId = `edge_${Math.floor(Math.random() * 10000)}`;
 
-        return await response.json()
+        console.log('[API Mock] Created edge:', mockEdgeId)
+
+        return {
+            status: 'success',
+            edge_id: mockEdgeId,
+            source_id: request.source_id,
+            target_id: request.target_id,
+            conversation_id: request.conversation_id
+        };
+
+
+        // actual edge creation
+        // const response = await fetch(`${API_BASE_URL}/api/edge/create`, {
+        //     method: 'POST',
+        //     headers: {
+        //         'Content-Type': 'application/json'
+        //     },
+        //     body: JSON.stringify(request)
+        // })
+
+        // if(!response.ok){
+        //     throw new Error(`Failed to create edge: ${response.status}`)
+        // }
+
+        // return await response.json()
     })
 }

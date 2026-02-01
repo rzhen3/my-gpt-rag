@@ -15,6 +15,13 @@ export interface CreateNodeResponse{
     conversation_id: string;
 }
 
+export interface EdgeData{
+    id: string;
+    source: string;
+    target: string;
+    couversation_id?: string;
+}
+
 export interface CreateEdgeRequest{
     source_id: string;
     target_id: string;
