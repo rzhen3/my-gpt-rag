@@ -1,7 +1,26 @@
 from pydantic import BaseModel
+from typing import Optional
 
 # structure for API request from frontend
 class ExecuteNodeRequest(BaseModel):
     node_id: str
     prompt: str
 
+class CreateNodeRequest(BaseModel):
+    position: dict
+    conversation_id: Optional[str] = None
+
+class CreateNodeResponse(BaseModel):
+    status: str
+    node_id: str
+
+class CreateEdgeRequest(BaseModel):
+    source_id: str
+    target_id: str
+    conversation_id: Optional[str] = None
+
+class CreateEdgeResponse(BaseModel):
+    status: str
+    edge_id: str
+    source_id: str
+    target_id: str
