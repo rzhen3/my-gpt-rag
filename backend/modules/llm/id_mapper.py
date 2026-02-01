@@ -12,7 +12,7 @@ class IDMapper:
 
     def resolve_id(self, node_id: str) -> int:        
         if node_id.startswith("temp_"):
-
+            print("is temp.")
             # valid temporary ID
             if node_id in self._mappings:
                 db_id = self._mappings[node_id]
@@ -24,6 +24,7 @@ class IDMapper:
                 raise ValueError(f"Unknown temporary ID: {node_id}")
             
         # already a DB ID (assumes that we only get non-malicious requests from frontend)
+        # unsafe so MVP only. 
         try:
             db_id = int(node_id)
             print(f"[IDMapper] Using database ID: {db_id}")
@@ -38,3 +39,5 @@ class IDMapper:
     def clear_mappings(self) -> None:
         self._mappings.clear()
         print("[IDMapper] Cleared all mappings")
+
+id_mapper = IDMapper()

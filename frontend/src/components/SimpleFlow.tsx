@@ -19,40 +19,19 @@ import { ReactFlow, ConnectionMode,
     } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import PromptNode from './PromptNode';
-
-const initialNodes: Node[] = [
-    {
-        id: 'n1',
-        type: 'prompt',
-        position: { x: 0, y: 0},
-        data: { label: 'some node', value: 123},
-        connectable: true,
-        draggable: true,
-        selectable: true,
-        focusable: true
-    },
-    {
-        id: 'n2',
-        type: 'prompt',
-        position: { x: 67, y: 67},
-        data: { label: 'some other node', value: 123},
-        connectable: true,
-        draggable: true,
-        selectable: true,
-        focusable: true
-    }
-];
+import {generateTempId} from '../utils/requestQueue';
+import {createNode as createNodeAPI} from '../api/client'
 
 const nodeTypes: NodeTypes = { prompt: PromptNode }
 
-const initialEdges: Edge[] = [];
-
 function SimpleFlow() {
 
-    const [nodes, setNodes] = useState(initialNodes);
-    const [edges, setEdges] = useState(initialEdges);
-    const [nodeIdCounter, setNodeIdCounter] = useState(4);
+    const [nodes, setNodes] = useState<Node[]>([]);
+    const [edges, setEdges] = useState<Edge[]>([]);
+    const [nodeIdCounter, setNodeIdCounter] = useState(1);
+    const [isCreatingNode, setIsCreatingNode] = useState(false);
 
+    const [conversationId] = useState<string>('demo_conversation_001')
 
     const onNodesChange: OnNodesChange = useCallback(
         (changes) => setNodes((nodesSnapshot) => applyNodeChanges(changes, nodesSnapshot)), []
@@ -63,15 +42,19 @@ function SimpleFlow() {
     );
 
     /** create new prompt */
-    const addPromptNode = useCallback(() => {
-        const newNode: Node = {
-            id: `n${nodeIdCounter}`,
-            type: 'prompt',
-            position: {
+    const addPromptNode = useCallback(async () => {
+        setIsCreatingNode(true);
+        const tempId = generateTempId();
 
-                x: Math.random() * 500,
-                y: Math.random() * 500
-            },
+        const position = {
+            x: Math.random() * 500,
+            y: Math.random() * 500,
+        }
+
+        const newNode: Node = {
+            id: tempId,
+            type: 'prompt',
+            position: position,
             data: {
                 label: `Node ${nodeIdCounter}`,
             },
@@ -84,7 +67,41 @@ function SimpleFlow() {
 
         setNodes((nds) => [...nds, newNode]);
         setNodeIdCounter((count) => count + 1);
-    }, [nodeIdCounter]);
+
+        // tell background about node
+        try{
+            const response = await createNodeAPI({
+                position,
+                conversation_id: conversationId
+            });
+
+            console.log('[SimpleFlow] Backend confirmed node:', response.node_id);
+
+            // update id for newly created node based on backend
+            setNodes((nds) => nds.map(node => 
+                node.id === tempId
+                    ? { ...node, id:response.node_id }
+                    : node
+            ))
+
+            // also update backend
+            setEdges((eds) => eds.map(edge => ({
+                ...edge,
+                source: edge.source === tempId ? response.node_id : edge.source,
+                target: edge.target === tempId ? response.node_id : edge.target
+            })));
+
+            console.log(`[SimpleFlow] ID reconciliation for:${tempId} -> ${response.node_id}`);
+        }catch(error){
+            console.error('[SimpleFlow] Failed to create node:', error);
+
+            // rollback nodes
+            setNodes((nds) => nds.filter(node => node.id !== tempId));
+            alert('Failed to create node. Please try again.');
+        }finally{
+            setIsCreatingNode(false);
+        }
+    }, [conversationId, nodeIdCounter]);
 
     /** delete selected nodes */
    const deleteSelected = useCallback(() => {
@@ -228,13 +245,14 @@ function SimpleFlow() {
             }}>
                 <button
                     onClick={addPromptNode}
+                    disabled={isCreatingNode}
                     style={{
                         padding: '10px 20px',
-                        backgroundColor: '#007bff',
+                        backgroundColor: isCreatingNode ? '#6c757d' : '#007bff',
                         color: 'white',
                         border: 'none',
                         borderRadius: '4px',
-                        cursor: 'pointer',
+                        cursor: isCreatingNode ? 'not-allowed':'pointer',
                         fontSize: '14px',
                         fontWeight: 'bold',
                     }}
@@ -246,6 +264,12 @@ function SimpleFlow() {
                 <div>Delete/Backspace: Delete</div>
                 <div>Esc: Deselect All</div>
                 <div>Enter: Submit (when node selected)</div>
+                <div style={{marginTop: '10px', fontSize: '11px', color: '#666'}}>
+                    <strong>Debug Info:</strong>
+                    <div>Total nodes: {nodes.length}</div>
+                    <div>Temp IDs: {nodes.filter(n => n.id.startsWith('temp_')).length}</div>
+                    <div>Real IDs: {nodes.filter(n => !n.id.startsWith('temp_')).length}</div>
+                </div>
 
                 {/* Debug: Show selected nodes */}
                 <div style={{marginTop: '10px', color: 'blue'}}>
