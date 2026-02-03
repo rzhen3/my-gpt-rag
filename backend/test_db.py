@@ -30,5 +30,31 @@ def test_create_user():
     finally:
         db.close()
 
+def test_create_then_modify_user():
+
+    db = SessionLocal()
+
+    try:
+        new_user = User(
+            name = "alice",
+            email = "alice@mail.com"
+        )
+
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+
+        user_id = new_user.id
+        print(f"user_id: {user_id}, name: {new_user.name}, email: {new_user.email}")
+
+
+        new_user.name = "joe blow schmo"
+        db.commit()
+        db.refresh(new_user)
+        print(f"user_id: {user_id}, name: {new_user.name}, email: {new_user.email}")
+        # takeaway: sqlalchemy tracks the in-memory object so that commit() updates chagnes
+        
+    except Exception as e:
+        print("errored out.")
 if __name__ == "__main__":
-    test_create_user()
+    test_create_then_modify_user()

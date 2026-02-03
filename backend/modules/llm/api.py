@@ -13,6 +13,7 @@ from core.database import get_db
 
 router = APIRouter()
 _next_fake_id = 1
+
 @router.post("/execute")
 async def execute_node(
     request: ExecuteNodeRequest,
@@ -30,40 +31,42 @@ async def execute_node(
     print(f"Prompt: {request.prompt}")
     print(f"{'='*50}\n")
 
-    is_temp_id = request.node_id.startswith("temp_")
-    # call LLM 
+
     try:
-        if is_temp_id:
-            print(f"[Execute] Creating new node for temp ID: {request.node_id}")
+        # resolve existing node id to db id
+        print(f"[Execute] Resolving existing node ID: {request.node_id}")
+        node_id = id_mapper.resolve_id(request.node_id)
 
-            # TODO: create node in database
-            db_node_id = _next_fake_id     # placeholder
-            _next_fake_id += 1
+        # if node does not exist, do nothing and error
+        node = db.query(Node).filter(Node.id == request.node_id).first()
 
-            id_mapper.add_mapping(request.node_id, db_node_id)
-            node_id = db_node_id
-        else:
-            # resolve existing node id to db id
-            print(f"[Execute] Resolving existing node ID: {request.node_id}")
-            node_id = id_mapper.resolve_id(request.node_id)
+        if not node:
+            raise HTTPException(status_code=404, 
+                detail="Node does not exist to be executed")
 
+        node.prompt_text = request.prompt
 
         print(f"[Execute] Using database node ID: {node_id}")
         response_text = await gemini_client.generate_response(request.prompt)
 
-        # TODO: save response to database
+        # save response to database
+        node.response_text = response_text
+        db.commit()
 
-        print(F"Response: {response_text[:100]}...")
+        print(f"[Execute] Saved response to database")
+
         return {
             "status": "success",
-            "node_id": str(node_id),
+            "node_id": str(node.id),
             "response": response_text
         }
     except ValueError as e:
+        db.rollback()
         print(f"[Execute] Error resolving ID: {e}")
         raise HTTPException(status_code=400, detail = str(e))
     
     except Exception as e:
+        db.rollback()
         print(f"[Execute] Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
     
@@ -132,7 +135,7 @@ async def create_node(
         db.commit()
         db.refresh(node)
 
-        print(f"[CreateNode] Created ndoe in DB: {node.id}")
+        print(f"[CreateNode] Created node in DB: {node.id}")
 
         return CreateNodeResponse(
             status = "success",
@@ -170,10 +173,56 @@ async def create_edge(
                 detail = f"Node not found: source={source_node is not None}, target={target_node is not None}"
             )
 
-        # check for existing edge
+        # check for duplicating edge
         existing_edge = db.query(Edge).filter(
             Edge.source_node_id == source_db_id,
             Edge.target_node_id == target_db_id
         ).first()
 
+        # avoid network retries creating duplicate edges
+        if existing_edge:
+            print(f"[CreateEdge] Edge already exists: {existing_edge.id}")
+
+            # return existing request for existing edge
+            return CreateEdgeRequest(
+                status = "exists",
+                edge_id = str(existing_edge.id),
+                source_id = str(source_db_id),
+                target_id = str(target_db_id),
+            )
         
+        # create edge and persist
+        edge = Edge(
+            conversation_id = source_node.conversation_id,
+            source_node_id=source_db_id,
+            target_node_id=target_db_id,
+        )
+
+        db.add(edge)
+        db.commit()
+        db.refresh(edge)
+
+        print(f"[CreateEdge] Create edge: {edge.id}")
+
+        source_ancestors = source_node.ancestor_ids or []
+        target_node.ancestor_ids = list(set(source_ancestors + [source_db_id])) # update ancestor list
+        db.commit()
+
+        print(f"[CreateEdge] Updated ancestor_ids for node {target_db_id}: {target_node.ancestor_ids}")
+
+        return CreateEdgeResponse(
+            status="success",
+            edge_id=str(edge.id),
+            source_id=str(source_db_id),
+            target_id=str(target_db_id)
+        )
+
+    except ValueError as e:
+        print(f"[CreateEdge] ID resolution error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    
+    except Exception as e:
+        db.rollback()
+        print(f"[CreateEdge] Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    
