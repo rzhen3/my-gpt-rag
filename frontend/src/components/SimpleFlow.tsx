@@ -33,7 +33,7 @@ function SimpleFlow() {
     const [isCreatingNode, setIsCreatingNode] = useState(false);
     const [deletedEdges, setDeletedEdges] = useState<string[]>([]);
 
-    const [conversationId] = useState<string>('demo_conversation_001')
+    const [conversationId] = useState(1)
 
     const onNodesChange: OnNodesChange = useCallback(
         (changes) => setNodes((nodesSnapshot) => applyNodeChanges(changes, nodesSnapshot)), []
@@ -84,7 +84,7 @@ function SimpleFlow() {
         try{
             const response = await createNodeAPI({
                 position,
-                conversation_id: conversationId
+                conversation_id: String(conversationId)
             });
 
             console.log('[SimpleFlow] Backend confirmed node:', response.node_id);
@@ -244,7 +244,7 @@ function SimpleFlow() {
                 const response = await createEdgeAPI({
                     source_id: connection.source!,
                     target_id: connection.target!,
-                    conversation_id: conversationId,
+                    conversation_id: String(conversationId),
                 })
 
                 console.log('[SimpleFlow] edge creation confirmed by backend:', response.edge_id)
