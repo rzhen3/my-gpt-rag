@@ -20,8 +20,11 @@ import { ReactFlow, ConnectionMode,
 import '@xyflow/react/dist/style.css';
 import PromptNode from './PromptNode';
 import {generateTempId} from '../utils/requestQueue';
-import {createNode as createNodeAPI} from '../api/client';
-import {createEdge as createEdgeAPI} from '../api/client';
+import {
+    createNode as createNodeAPI,
+    createEdge as createEdgeAPI,
+    deleteEdge as deleteEdgeAPI
+} from '../api/client';
 
 const nodeTypes: NodeTypes = { prompt: PromptNode }
 
@@ -31,8 +34,6 @@ function SimpleFlow() {
     const [edges, setEdges] = useState<Edge[]>([]);
     const [nodeIdCounter, setNodeIdCounter] = useState(1);
     const [isCreatingNode, setIsCreatingNode] = useState(false);
-    const [deletedEdges, setDeletedEdges] = useState<string[]>([]);
-
     const [conversationId] = useState(1)
 
     const onNodesChange: OnNodesChange = useCallback(
@@ -40,14 +41,27 @@ function SimpleFlow() {
     );
 
     const onEdgesChange: OnEdgesChange = useCallback(
-        (changes) => {
+        async (changes) => {
             const removedEdges = changes.filter(change => change.type === 'remove')
                 .map(change => (change as any).id);
 
             if(removedEdges.length > 0){
                 console.log('[SimpleFlow] Edges removed:', removedEdges);
                 // TODO: eventually send delete request to backend. we just store them now
-                setDeletedEdges(prev => [...prev, ...removedEdges]);
+                // perform deletion on backend
+                for(const edgeId of removedEdges){
+                    try{
+                        const response = await deleteEdgeAPI({
+                            edge_id: edgeId
+                        });
+                        console.log(`[SimpleFlow] Edge${edgeId} deleted from backend`,
+                            response
+                        )
+                    } catch(error){
+                        console.error(`[SimpleFlow] Failed to delete edge\
+                            ${edgeId}: ${error}`);
+                    }
+                }
             }
             setEdges((edgesSnapshot) => applyEdgeChanges(changes, edgesSnapshot))
         }    

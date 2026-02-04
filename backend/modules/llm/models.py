@@ -24,3 +24,12 @@ class CreateEdgeResponse(BaseModel):
     edge_id: str
     source_id: str
     target_id: str
+
+class DeleteEdgeRequest(BaseModel):
+    edge_id: str
+
+class DeleteEdgeResponse(BaseModel):
+    status: str
+    edge_id: str
+    message: Optional[str] = None
+

@@ -47,6 +47,16 @@ export interface ExecuteNodeResponse{
     response?: string;
 }
 
+export interface DeleteEdgeRequest{
+    edge_id: string
+}
+
+export interface DeleteEdgeResponse{
+    status: string;
+    edge_id: string;
+    message?: string;
+}
+
 // maps frontend id to ground truth ID
 export interface IDMapping{
     [tempId: string]: string;

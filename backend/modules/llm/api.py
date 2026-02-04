@@ -6,7 +6,8 @@ from typing import Optional
 from modules.storage.models import Node, Conversation, Edge
 from .id_mapper import id_mapper
 from .models import ExecuteNodeRequest, CreateNodeRequest, CreateNodeResponse, \
-    CreateEdgeRequest, CreateEdgeResponse
+    CreateEdgeRequest, CreateEdgeResponse, DeleteEdgeRequest, DeleteEdgeResponse \
+    
 from .gemini_client import gemini_client
 from core.database import get_db
 
@@ -43,6 +44,8 @@ async def execute_node(
         if not node:
             raise HTTPException(status_code=404, 
                 detail="Node does not exist to be executed")
+        
+         # TODO: fine-tune and assemble prompt history + scaffolding
 
         node.prompt_text = request.prompt
 
@@ -127,6 +130,9 @@ async def create_node(
             conversation_id = conversation.id,
             prompt_text = "",
             response_text = "",
+            # TODO X: upload position data
+            # position_x = request.position['x'],
+            # position_y = request.position['y'],
             node_type="prompt",
             ancestor_ids = []
         )
@@ -225,4 +231,60 @@ async def create_edge(
         db.rollback()
         print(f"[CreateEdge] Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/edges/delete")
+async def delete_edges(
+    request: DeleteEdgeRequest,
+    db: Session = Depends(get_db)
+):
+    print(f"\n{'='*50}")
+    print(f"[DeleteEdge] Request to delete edge: {request.edge_id}")
+    print(f"{'='*50}")
+
+    try:
+        edge_id = int(request.edge_id)
+
+        # query edge in database
+        edge = db.query(Edge).filter(Edge.id == edge_id).first()
+
+        if not edge:
+            print(f"[DeleteEdge] Edge not found: {edge.id}")
+            raise HTTPException(
+                status_code = 404,
+                detail=f"Edge with ID {edge_id} not found"
+            )
+        
+        # store source and target IDs before deletion
+        source_id = edge.source_node_id
+        target_id = edge.target_node_id
+        
+        db.delete(edge)
+        db.commit()
+
+        print(f"[DeleteEdge] Successfully deleted edge {edge_id} \
+              (source: {source_id}, target: {target_id})")
+        
+        return DeleteEdgeResponse(
+            status = "success",
+            edge_id = str(edge_id),
+            message="Edge deleted successfully"
+        )
+    except ValueError:
+        print(f"[DeleteEdge] Invalid edge ID format: {request.edge_id}")
+        raise HTTPException(
+            status_code = 400,
+            detail="Invalid edge ID format"
+        )
+    except HTTPException:
+        raise HTTPException(
+            status_code = 404,
+            detail=f"Edge with ID {edge_id} not found"
+        )
     
+    except Exception as e:
+        db.rollback()
+        print(f"[DeleteEdge] Error: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
