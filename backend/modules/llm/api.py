@@ -5,7 +5,7 @@ from typing import Optional
 
 from modules.storage.models import Node, Conversation, Edge
 from .id_mapper import id_mapper
-from .models import ExecuteNodeRequest, CreateNodeRequest, CreateNodeResponse, \
+from .models import DeleteNodeRequest, DeleteNodeResponse, ExecuteNodeRequest, CreateNodeRequest, CreateNodeResponse, \
     CreateEdgeRequest, CreateEdgeResponse, DeleteEdgeRequest, DeleteEdgeResponse \
     
 from .gemini_client import gemini_client
@@ -287,4 +287,68 @@ async def delete_edges(
         raise HTTPException(
             status_code=500,
             detail=str(e)
+        )
+    
+@router.delete('/nodes/delete')
+async def delete_node(
+    request: DeleteNodeRequest,
+    db: Session = Depends(get_db)
+):
+    print(f"\n{'='*50}")
+    print(f"[DeleteNode] Request to delete node: {request.node_id}")
+    print(f"\n{'='*50}")
+
+    try:
+        node_id = int(request.node_id)
+
+        # query database to find node
+        node = db.query(Node).filter(Node.id == node_id).first()
+
+        if not node:
+            print(f"[DeleteNode] Node not found: {node_id}")
+            raise HTTPException(
+                status_code = 404,
+                detail=f"Node with ID {node_id} not found"
+            )
+        
+        # calculate amount of edges affected by deletion
+        connected_edges = db.query(Edge).filter(
+            (Edge.source_node_id == node_id) | (Edge.target_node_id == node_id)
+        ).all()
+        edges_count = len(connected_edges)
+
+        if edges_count > 0:
+            edge_ids = [edge.id for edge in connected_edges]
+            print(f"[DeleteNode] will cascade-delete {edges_count} edges\
+                : {edge_ids}")
+            
+        db.delete(node)
+        db.commit()
+
+        print(f"[DeleteNode] Successfully deleted node {node_id} and {edges_count} connected edges")
+
+        return DeleteNodeResponse(
+            status="success",
+            node_id = str(node.id),
+            message=f"Node deleted successfully with cascade-deletion of {edges_count} edges",
+            edges_deleted_count = edges_count
+        )
+    except ValueError:
+        print(f"[DeleteNode Invalid ndoe ID format: {request.node_id}]")
+        raise HTTPException(
+            status_code = 400,
+            detail = "Invalid node ID format"
+        )
+    
+    except HTTPException:
+        raise HTTPException(
+            status_code = 404,
+            detail=f"Node with ID {node_id} not found"
+        )
+    except Exception as e:
+        db.rollback()
+        print(f"[Deletenode] error: {e}")
+        raise HTTPException(
+            status_code = 500,
+            detail = str(e)
         )

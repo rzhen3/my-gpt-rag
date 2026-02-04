@@ -7,7 +7,9 @@ import type{
     CreateEdgeRequest,
     CreateEdgeResponse,
     DeleteEdgeRequest,
-    DeleteEdgeResponse
+    DeleteEdgeResponse,
+    DeleteNodeRequest,
+    DeleteNodeResponse
 } from '../types/api'
 
 const API_BASE_URL = 'http://localhost:8000';
@@ -102,6 +104,40 @@ export const deleteEdge = async (
 
         const result = await response.json();
         console.log('[API] Delete edge success:', result);
+        return result;
+    });
+}
+
+export const deleteNode = async(
+    request: DeleteNodeRequest
+): Promise<DeleteNodeResponse> => {
+
+    return apiQueue.enqueue(async () => {
+
+        console.log('[API] Deleting node:', request.node_id);
+
+        const response = await fetch(`${API_BASE_URL}/api/llm/nodes/delete`, {
+            method: 'DELETE',
+            headers:{
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(request)
+        });
+
+        // handle bad response
+        if(!response.ok){
+            const errorText = await response.text();
+            console.error('[API] Delete node failed:', response.status, errorText);
+            throw new Error(`Failed to delete node: ${response.status} - ${errorText}`);
+        }
+
+        const result = await response.json();
+        console.log('[API] Delete node success:', result);
+        // Log cascade deletion info
+        if (result.edges_deleted_count > 0) {
+            console.log(`[API] Cascade-deleted ${result.edges_deleted_count} edge(s)`);
+        }
+
         return result;
     });
 }

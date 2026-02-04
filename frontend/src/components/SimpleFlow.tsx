@@ -23,7 +23,8 @@ import {generateTempId} from '../utils/requestQueue';
 import {
     createNode as createNodeAPI,
     createEdge as createEdgeAPI,
-    deleteEdge as deleteEdgeAPI
+    deleteEdge as deleteEdgeAPI,
+    deleteNode as deleteNodeAPI,
 } from '../api/client';
 
 const nodeTypes: NodeTypes = { prompt: PromptNode }
@@ -37,7 +38,35 @@ function SimpleFlow() {
     const [conversationId] = useState(1)
 
     const onNodesChange: OnNodesChange = useCallback(
-        (changes) => setNodes((nodesSnapshot) => applyNodeChanges(changes, nodesSnapshot)), []
+
+
+        async(changes) => {
+            const removedNodes = changes.filter(change => change.type === 'remove')
+                .map(change => (change as any).id);
+
+                if(removedNodes.length > 0){
+                    console.log('[SimpleFlow] Nodes being removed: ', removedNodes);
+
+                    for(const nodeId of removedNodes){
+                        try{
+                            const response = await deleteNodeAPI({
+                                node_id: nodeId
+                            });
+                            console.log(`[SimpleFlow] Node ${nodeId} deleted from backend: ${response}`);
+
+                            if(response.edges_deleted_count && response.edges_deleted_count > 0){
+                                console.log(`[SimpleFlow] Backend cascade-deleted ${response.edges_deleted_count} edge(s) for node ${nodeId}`);
+                            }
+
+                        }catch(error){
+                            console.error(`[SimpleFlow] Failed to delete node ${nodeId}:`, error);
+                        }
+                    }
+                }
+
+                // apply changes
+                setNodes((nodesSnapshot) => applyNodeChanges(changes, nodesSnapshot));
+        }, []
     );
 
     const onEdgesChange: OnEdgesChange = useCallback(
@@ -59,8 +88,12 @@ function SimpleFlow() {
                             response
                         )
                     } catch(error){
-                        console.error(`[SimpleFlow] Failed to delete edge\
-                            ${edgeId}: ${error}`);
+                        // Check if it's a 404 (edge already deleted by cascade)
+                        if (error instanceof Error && error.message.includes('404')) {
+                            console.log(`[SimpleFlow] Edge ${edgeId} already deleted (likely cascade-deleted by node deletion)`);
+                        } else {
+                            console.error(`[SimpleFlow] Failed to delete edge ${edgeId}:`, error);
+                        }
                     }
                 }
             }
@@ -132,22 +165,29 @@ function SimpleFlow() {
 
     /** delete selected nodes */
    const deleteSelected = useCallback(() => {
+
         const selectedNodes = nodes.filter((node) => node.selected);
         const selectedEdges = edges.filter((edge) => edge.selected);
-        const selectedNodeIds = selectedNodes.map((node) => node.id);
 
-        if (selectedNodeIds.length > 0){
-            setNodes((nds) => nds.filter((node) => !node.selected));
-            setEdges((eds) => eds.filter(
-                (edge) => !selectedNodeIds.includes(edge.source) && !selectedNodeIds.includes(edge.target)
-            ));
+        // create removal changes via ReactFlow
+        const nodeChanges = selectedNodes.map(node => ({
+            id: node.id,
+            type: 'remove' as const
+        }));
+        
+        const edgeChanges = selectedEdges.map(edge => ({
+            id: edge.id,
+            type: 'remove' as const
+        }));
+
+        if(nodeChanges.length > 0){
+            onNodesChange(nodeChanges);
+        }
+        if(edgeChanges.length > 0){
+            onEdgesChange(edgeChanges)
         }
 
-        if(selectedEdges.length > 0){
-            setEdges((eds) => eds.filter((edge) => !edge.selected));
-        }
-
-   }, [nodes, edges]);
+   }, [nodes, edges, onNodesChange, onEdgesChange]);
 
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
@@ -168,30 +208,7 @@ function SimpleFlow() {
             if(!isInputField && (event.key === 'Delete' || event.key === 'Backspace')){
                 event.preventDefault();
                 event.stopPropagation();
-
-                const selectedNodes = nodes.filter((node) => node.selected);
-                const selectedEdges = edges.filter((edge) => edge.selected);
-
-                // create removal changes via ReactFlow
-                const nodeChanges = selectedNodes.map(node => ({
-                    id: node.id,
-                    type: 'remove' as const
-                }));
-                
-                const edgeChanges = selectedEdges.map(edge => ({
-                    id: edge.id,
-                    type: 'remove' as const
-                }));
-
-                if(nodeChanges.length > 0){
-                    onNodesChange(nodeChanges);
-                }
-                if(edgeChanges.length > 0){
-                    onEdgesChange(edgeChanges)
-                }
-
-
-                // deleteSelected();    // problematic
+                deleteSelected();
                 console.log('Deleting nodes');
             }
 
@@ -207,7 +224,7 @@ function SimpleFlow() {
 
         document.addEventListener('keydown', handleKeyDown, true);
         return () => document.removeEventListener('keydown', handleKeyDown, true);
-    }, [addPromptNode, nodes, edges, onEdgesChange, onNodesChange]);
+    }, [addPromptNode, deleteSelected]);
     
    /** validating proper node connection */
     const isValidConnection = useCallback((connection: Connection | Edge) => {

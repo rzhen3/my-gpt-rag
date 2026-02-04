@@ -33,3 +33,11 @@ class DeleteEdgeResponse(BaseModel):
     edge_id: str
     message: Optional[str] = None
 
+class DeleteNodeRequest(BaseModel):
+    node_id: str
+
+class DeleteNodeResponse(BaseModel):
+    status: str
+    node_id: str
+    message: Optional[str] = None
+    edges_deleted_count: Optional[int] = 0

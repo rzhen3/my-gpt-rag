@@ -57,6 +57,17 @@ export interface DeleteEdgeResponse{
     message?: string;
 }
 
+export interface DeleteNodeRequest{
+    node_id: string;
+}
+
+export interface DeleteNodeResponse{
+    status: string;
+    node_id: string;
+    message?: string;
+    edges_deleted_count?: number;
+}
+
 // maps frontend id to ground truth ID
 export interface IDMapping{
     [tempId: string]: string;
