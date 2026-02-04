@@ -42,6 +42,7 @@ function SimpleFlow() {
 
     const onEdgesChange: OnEdgesChange = useCallback(
         async (changes) => {
+            console.log('ok this is weird?')
             const removedEdges = changes.filter(change => change.type === 'remove')
                 .map(change => (change as any).id);
 
@@ -167,7 +168,30 @@ function SimpleFlow() {
             if(!isInputField && (event.key === 'Delete' || event.key === 'Backspace')){
                 event.preventDefault();
                 event.stopPropagation();
-                deleteSelected();
+
+                const selectedNodes = nodes.filter((node) => node.selected);
+                const selectedEdges = edges.filter((edge) => edge.selected);
+
+                // create removal changes via ReactFlow
+                const nodeChanges = selectedNodes.map(node => ({
+                    id: node.id,
+                    type: 'remove' as const
+                }));
+                
+                const edgeChanges = selectedEdges.map(edge => ({
+                    id: edge.id,
+                    type: 'remove' as const
+                }));
+
+                if(nodeChanges.length > 0){
+                    onNodesChange(nodeChanges);
+                }
+                if(edgeChanges.length > 0){
+                    onEdgesChange(edgeChanges)
+                }
+
+
+                // deleteSelected();    // problematic
                 console.log('Deleting nodes');
             }
 
@@ -183,7 +207,7 @@ function SimpleFlow() {
 
         document.addEventListener('keydown', handleKeyDown, true);
         return () => document.removeEventListener('keydown', handleKeyDown, true);
-    }, [addPromptNode, deleteSelected]);
+    }, [addPromptNode, nodes, edges, onEdgesChange, onNodesChange]);
     
    /** validating proper node connection */
     const isValidConnection = useCallback((connection: Connection | Edge) => {
