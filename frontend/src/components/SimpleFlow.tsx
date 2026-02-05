@@ -47,6 +47,15 @@ function SimpleFlow() {
                 if(removedNodes.length > 0){
                     console.log('[SimpleFlow] Nodes being removed: ', removedNodes);
 
+                    // find connected edges to cascade-delete
+                    const connectedEdges = edges.filter(edge => 
+                        removedNodes.includes(edge.source) || removedNodes.includes(edge.target)
+                    );
+                    if(connectedEdges.length > 0){
+                        console.log(`[SimpleFlow] Found ${connectedEdges.length} connected edges:\
+                            ${connectedEdges.map(e => e.id)}`);
+                    }
+
                     for(const nodeId of removedNodes){
                         try{
                             const response = await deleteNodeAPI({
@@ -62,11 +71,18 @@ function SimpleFlow() {
                             console.error(`[SimpleFlow] Failed to delete node ${nodeId}:`, error);
                         }
                     }
+
+                    if(connectedEdges.length > 0){
+                        console.log(`[SimpleFlow] Removing ${connectedEdges.length} edges from state`)
+                        setEdges((eds) => eds.filter(edge => 
+                            !connectedEdges.some(connectedEdge => connectedEdge.id === edge.id)
+                        ));
+                    }
                 }
 
                 // apply changes
                 setNodes((nodesSnapshot) => applyNodeChanges(changes, nodesSnapshot));
-        }, []
+        }, [edges]
     );
 
     const onEdgesChange: OnEdgesChange = useCallback(
