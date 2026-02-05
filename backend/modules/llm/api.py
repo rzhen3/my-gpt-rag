@@ -1,12 +1,13 @@
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import flag_modified
 from pydantic import BaseModel
 from typing import Optional
 
 from modules.storage.models import Node, Conversation, Edge
 from .id_mapper import id_mapper
 from .models import DeleteNodeRequest, DeleteNodeResponse, ExecuteNodeRequest, CreateNodeRequest, CreateNodeResponse, \
-    CreateEdgeRequest, CreateEdgeResponse, DeleteEdgeRequest, DeleteEdgeResponse \
+    CreateEdgeRequest, CreateEdgeResponse, DeleteEdgeRequest, DeleteEdgeResponse, UpdateNodePositionRequest, UpdateNodePositionResponse \
     
 from .gemini_client import gemini_client
 from core.database import get_db
@@ -357,4 +358,77 @@ async def delete_node(
         raise HTTPException(
             status_code = 500,
             detail = str(e)
+        )
+    
+@router.patch('/nodes/update-position')
+async def update_node_position(
+    request: UpdateNodePositionRequest,
+    db: Session = Depends(get_db)
+):
+    print(f"\n{'='*50}")
+    print(f"[UpdatePosition] Node: {request.node_id}, New position: {request.position}")
+    print(f"{'='*50}\n")
+
+    try:
+        # Convert node_id to integer
+        node_id = int(request.node_id)
+        
+        # Validate position has x and y
+        if 'x' not in request.position or 'y' not in request.position:
+            raise HTTPException(
+                status_code=400,
+                detail="Position must include 'x' and 'y' coordinates"
+            )
+        
+        # query the database to find the node
+        node = db.query(Node).filter(Node.id == node_id).first()
+        
+        # failed to find node in DB
+        if not node:
+            print(f"[UpdatePosition] Node not found: {node_id}")
+            raise HTTPException(
+                status_code=404,
+                detail=f"Node with ID {node_id} not found"
+            )
+        
+
+        node.position_x = request.position['x']
+        node.position_y = request.position['y']
+        
+        # Mark the field as modified (important for JSONB!)
+        
+        flag_modified(node, 'type_data')
+        
+        db.commit()
+        db.refresh(node)
+        
+        print(f"[UpdatePosition] Successfully updated position for node {node_id}: {request.position}")
+        
+        # Return success response
+        return UpdateNodePositionResponse(
+            status="success",
+            node_id=str(node_id),
+            position=node.type_data.get('position'),
+            message="Position updated successfully"
+        )
+        
+    except ValueError:
+        # Invalid node ID format
+        print(f"[UpdatePosition] Invalid node ID format: {request.node_id}")
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid node ID format"
+        )
+    
+    except HTTPException:
+        # Re-raise HTTP exceptions (like our 404 and validation errors)
+        raise
+    
+    except Exception as e:
+        # Catch any other unexpected errors
+        db.rollback()
+        print(f"[UpdatePosition] Error: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
         )

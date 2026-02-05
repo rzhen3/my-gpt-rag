@@ -8,7 +8,6 @@ import { ReactFlow, ConnectionMode,
     applyNodeChanges, 
     applyEdgeChanges, 
     addEdge, 
-    // useReactFlow,
     type Node, 
     type Edge, 
     type OnNodesChange, 
@@ -122,10 +121,20 @@ function SimpleFlow() {
         setIsCreatingNode(true);
         const tempId = generateTempId();
 
+        // Grid layout: 10 nodes per row
+        const baseX = 150;
+        const baseY = 150;
+        const offsetX = 300;  // Horizontal spacing
+        const offsetY = 200;  // Vertical spacing
+        const maxNodesPerRow = 5;  // 5 nodes per row
+        
+        const row = Math.floor((nodeIdCounter - 1) / maxNodesPerRow);
+        const col = (nodeIdCounter - 1) % maxNodesPerRow;
+        
         const position = {
-            x: Math.random() * 500,
-            y: Math.random() * 500,
-        }
+            x: baseX + (col * offsetX),
+            y: baseY + (row * offsetY),
+        };
 
         const newNode: Node = {
             id: tempId,

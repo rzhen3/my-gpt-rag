@@ -43,3 +43,13 @@ class DeleteNodeResponse(BaseModel):
     node_id: str
     message: Optional[str] = None
     edges_deleted_count: Optional[int] = 0
+
+class UpdateNodePositionRequest(BaseModel):
+    node_id: str
+    position: dict
+
+class UpdateNodePositionResponse(BaseModel):
+    status:str
+    node_id:str
+    position:dict
+    mesage: Optional[str] = None

@@ -13,6 +13,7 @@ export interface CreateNodeResponse{
     status: string;
     node_id: string;
     conversation_id: string;
+    position?: { x: number; y: number}
 }
 
 export interface EdgeData{
