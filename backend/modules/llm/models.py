@@ -13,6 +13,8 @@ class CreateNodeRequest(BaseModel):
 class CreateNodeResponse(BaseModel):
     status: str
     node_id: str
+    conversation_id: str
+    position: Optional[dict] = None
 
 class CreateEdgeRequest(BaseModel):
     source_id: str

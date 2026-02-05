@@ -50,7 +50,9 @@ async def execute_node(
         node.prompt_text = request.prompt
 
         print(f"[Execute] Using database node ID: {node_id}")
-        response_text = await gemini_client.generate_response(request.prompt)
+        response_text = await gemini_client.generate_response(
+            request.prompt
+        )
 
         # save response to database
         node.response_text = response_text
@@ -111,7 +113,8 @@ async def create_node(
             ).first()
 
             if not conversation:
-                raise HTTPException(status_code=404, detail="Conversation could not be found")
+                raise HTTPException(status_code=404, 
+                    detail="Conversation could not be found")
 
         else:
 
@@ -123,7 +126,8 @@ async def create_node(
             db.add(conversation)
             db.flush()
 
-            print(f"[CreateNode] Created new conversation in DB: {conversation.id}")
+            print(f"[CreateNode] Created new conversation in DB: \
+                  {conversation.id}")
 
         # creating default node
         node = Node(
@@ -131,8 +135,8 @@ async def create_node(
             prompt_text = "",
             response_text = "",
             # TODO X: upload position data
-            # position_x = request.position['x'],
-            # position_y = request.position['y'],
+            position_x = request.position['x'],
+            position_y = request.position['y'],
             node_type="prompt",
             ancestor_ids = []
         )
@@ -141,12 +145,14 @@ async def create_node(
         db.commit()
         db.refresh(node)
 
-        print(f"[CreateNode] Created node in DB: {node.id}")
+        print(f"[CreateNode] Created node in DB: {node.id}, (\
+              {node.position_x, node.position_y})")
 
         return CreateNodeResponse(
             status = "success",
             node_id = str(node.id),
-            conversation_id = str(conversation.id)
+            conversation_id = str(conversation.id),
+            position = { "x":node.position_x, "y":node.position_y}
         )
     except Exception as e:
         db.rollback()
